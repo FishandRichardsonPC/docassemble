@@ -16,6 +16,6 @@ class TestNameSuffix(unittest.TestCase):
         self.assertTrue( url_of('lithuania.svg').startswith('/packagestatic/docassemble.demo/lithuania.svg') )
 
 if __name__ == '__main__':
-    from docassemble.webapp.server import TestContext
+    from docassemble.webapp.testing import TestContext
     with TestContext('docassemble.demo'):
         unittest.main()

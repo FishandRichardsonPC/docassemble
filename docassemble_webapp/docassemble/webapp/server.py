@@ -1,3 +1,4 @@
+from docassemble.webapp.config_server import LOGSERVER, FULL_PACKAGE_DIRECTORY, UPLOAD_DIRECTORY, LOG_DIRECTORY, WEBAPP_PATH, COOKIELESS_SESSIONS, final_default_yaml_filename, fix_tabs
 import ast
 import base64
 import cgi
@@ -45,10 +46,8 @@ import weakref
 import xml.etree.ElementTree as ET
 import zipfile
 
-import docassemble.base.config
-if not docassemble.base.config.loaded:
-    docassemble.base.config.load()
 from docassemble.base.config import daconfig, hostname, in_celery
+from docassemble.webapp.utils import as_int, get_safe_next_param, endpoint_url
 
 import docassemble.webapp.setup
 from docassemble.webapp.setup import da_version
@@ -94,7 +93,6 @@ if not in_celery:
     import docassemble.webapp.worker
 
 import apiclient
-import babel.dates
 from bs4 import BeautifulSoup
 from Crypto.Hash import MD5
 from Crypto.PublicKey import RSA
@@ -105,13 +103,11 @@ import docassemble_flask_user.emails
 import docassemble_flask_user.forms
 import docassemble_flask_user.signals
 import docassemble_flask_user.views
-from docassemble_flask_user import UserManager, SQLAlchemyAdapter
 from docassemble_flask_user import login_required, roles_required, user_logged_in, user_changed_password, user_registered, user_reset_password
 from docassemblekvsession import KVSessionExtension
 from docassemble_textstat.textstat import textstat
 from flask import make_response, abort, render_template, render_template_string, request, session, send_file, redirect, current_app, get_flashed_messages, flash, Markup, jsonify, Response, g
 from flask_cors import cross_origin
-from flask_login import LoginManager
 from flask_login import login_user, logout_user, current_user
 from flask_wtf.csrf import CSRFError
 import googleapiclient.discovery
@@ -123,7 +119,6 @@ import oauth2client.client
 import pandas
 from PIL import Image
 import pkg_resources
-import psutil
 import pyotp
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
@@ -148,939 +143,6 @@ import wtforms
 import xlsxwriter
 from user_agents import parse as ua_parse
 import yaml
-
-docassemble.base.util.set_knn_machine_learner(docassemble.webapp.machinelearning.SimpleTextMachineLearner)
-docassemble.base.util.set_machine_learning_entry(docassemble.webapp.machinelearning.MachineLearningEntry)
-docassemble.base.util.set_random_forest_machine_learner(docassemble.webapp.machinelearning.RandomForestMachineLearner)
-docassemble.base.util.set_svm_machine_learner(docassemble.webapp.machinelearning.SVMMachineLearner)
-
-START_TIME = time.time()
-
-min_system_version = '1.2.0'
-re._MAXCACHE = 10000
-
-the_method_type = types.FunctionType
-equals_byte = bytes('=', 'utf-8')
-
-TypeType = type(type(None))
-NoneType = type(None)
-
-STATS = daconfig.get('collect statistics', False)
-DEBUG = daconfig.get('debug', False)
-ERROR_TYPES_NO_EMAIL = daconfig.get('suppress error notificiations', [])
-COOKIELESS_SESSIONS = daconfig.get('cookieless sessions', False)
-
-if DEBUG:
-    PREVENT_DEMO = False
-elif daconfig.get('allow demo', False):
-    PREVENT_DEMO = False
-else:
-    PREVENT_DEMO = True
-
-REQUIRE_IDEMPOTENT = not daconfig.get('allow non-idempotent questions', True)
-STRICT_MODE = daconfig.get('restrict input variables', False)
-PACKAGE_PROTECTION = daconfig.get('package protection', True)
-PERMISSIONS_LIST = [
-    'access_privileges',
-    'access_sessions',
-    'access_user_info',
-    'access_user_api_info',
-    'create_user',
-    'delete_user',
-    'demo_interviews',
-    'edit_privileges',
-    'edit_sessions',
-    'edit_user_active_status',
-    'edit_user_info',
-    'edit_user_api_info',
-    'edit_user_password',
-    'edit_user_privileges',
-    'interview_data',
-    'log_user_in',
-    'playground_control',
-    'template_parse'
-    ]
-
-HTTP_TO_HTTPS = daconfig.get('behind https load balancer', False)
-GITHUB_BRANCH = daconfig.get('github default branch name', 'main')
-request_active = True
-
-global_css = ''
-
-global_js = ''
-
-default_playground_yaml = """metadata:
-  title: Default playground interview
-  short title: Test
-  comment: This is a learning tool.  Feel free to write over it.
----
-objects:
-  - client: Individual
----
-question: |
-  What is your name?
-fields:
-  - First Name: client.name.first
-  - Middle Name: client.name.middle
-    required: False
-  - Last Name: client.name.last
-  - Suffix: client.name.suffix
-    required: False
-    code: name_suffix()
----
-question: |
-  What is your date of birth?
-fields:
-  - Date of Birth: client.birthdate
-    datatype: date
----
-mandatory: True
-question: |
-  Here is your document, ${ client }.
-subquestion: |
-  In order ${ quest }, you will need this.
-attachments:
-  - name: Information Sheet
-    filename: info_sheet
-    content: |
-      Your name is ${ client }.
-
-      % if client.age_in_years() > 60:
-      You are a senior.
-      % endif
-      Your quest is ${ quest }.  You
-      are eligible for ${ benefits }.
----
-question: |
-  What is your quest?
-fields:
-  - Your quest: quest
-    hint: to find the Loch Ness Monster
----
-code: |
-  if client.age_in_years() < 18:
-    benefits = "CHIP"
-  else:
-    benefits = "Medicaid"
-"""
-
-ok_mimetypes = {
-    "application/javascript": "javascript",
-    "application/json": "javascript",
-    "text/css": "css",
-    "text/html": "htmlmixed",
-    "text/x-python": "python"
-}
-ok_extensions = {
-    "4th": "forth",
-    "apl": "apl",
-    "asc": "asciiarmor",
-    "asn": "asn.1",
-    "asn1": "asn.1",
-    "aspx": "htmlembedded",
-    "b": "brainfuck",
-    "bash": "shell",
-    "bf": "brainfuck",
-    "c": "clike",
-    "c++": "clike",
-    "cc": "clike",
-    "cl": "commonlisp",
-    "clj": "clojure",
-    "cljc": "clojure",
-    "cljs": "clojure",
-    "cljx": "clojure",
-    "cob": "cobol",
-    "coffee": "coffeescript",
-    "cpp": "clike",
-    "cpy": "cobol",
-    "cql": "sql",
-    "cr": "crystal",
-    "cs": "clike",
-    "csharp": "clike",
-    "css": "css",
-    "cxx": "clike",
-    "cyp": "cypher",
-    "cypher": "cypher",
-    "d": "d",
-    "dart": "dart",
-    "diff": "diff",
-    "dtd": "dtd",
-    "dyalog": "apl",
-    "dyl": "dylan",
-    "dylan": "dylan",
-    "e": "eiffel",
-    "ecl": "ecl",
-    "ecmascript": "javascript",
-    "edn": "clojure",
-    "ejs": "htmlembedded",
-    "el": "commonlisp",
-    "elm": "elm",
-    "erb": "htmlembedded",
-    "erl": "erlang",
-    "f": "fortran",
-    "f77": "fortran",
-    "f90": "fortran",
-    "f95": "fortran",
-    "factor": "factor",
-    "feature": "gherkin",
-    "for": "fortran",
-    "forth": "forth",
-    "fs": "mllike",
-    "fth": "forth",
-    "fun": "mllike",
-    "go": "go",
-    "gradle": "groovy",
-    "groovy": "groovy",
-    "gss": "css",
-    "h": "clike",
-    "h++": "clike",
-    "haml": "haml",
-    "handlebars": "htmlmixed",
-    "hbs": "htmlmixed",
-    "hh": "clike",
-    "hpp": "clike",
-    "hs": "haskell",
-    "html": "htmlmixed",
-    "hx": "haxe",
-    "hxml": "haxe",
-    "hxx": "clike",
-    "in": "properties",
-    "ini": "properties",
-    "ino": "clike",
-    "intr": "dylan",
-    "j2": "jinja2",
-    "jade": "pug",
-    "java": "clike",
-    "jinja": "jinja2",
-    "jinja2": "jinja2",
-    "jl": "julia",
-    "json": "json",
-    "jsonld": "javascript",
-    "jsp": "htmlembedded",
-    "jsx": "jsx",
-    "ksh": "shell",
-    "kt": "clike",
-    "less": "css",
-    "lhs": "haskell-literate",
-    "lisp": "commonlisp",
-    "ls": "livescript",
-    "ltx": "stex",
-    "lua": "lua",
-    "m": "octave",
-    "markdown": "markdown",
-    "mbox": "mbox",
-    "md": "markdown",
-    "mkd": "markdown",
-    "mo": "modelica",
-    "mps": "mumps",
-    "msc": "mscgen",
-    "mscgen": "mscgen",
-    "mscin": "mscgen",
-    "msgenny": "mscgen",
-    "node": "javascript",
-    "nq": "ntriples",
-    "nsh": "nsis",
-    "nsi": "nsis",
-    "nt": "ntriples",
-    "nut": "clike",
-    "oz": "oz",
-    "p": "pascal",
-    "pas": "pascal",
-    "patch": "diff",
-    "pgp": "asciiarmor",
-    "php": "php",
-    "php3": "php",
-    "php4": "php",
-    "php5": "php",
-    "php7": "php",
-    "phtml": "php",
-    "pig": "pig",
-    "pl": "perl",
-    "pls": "sql",
-    "pm": "perl",
-    "pp": "puppet",
-    "pro": "idl",
-    "properties": "properties",
-    "proto": "protobuf",
-    "ps1": "powershell",
-    "psd1": "powershell",
-    "psm1": "powershell",
-    "pug": "pug",
-    "pxd": "python",
-    "pxi": "python",
-    "py": "python",
-    "pyx": "python",
-    "q": "q",
-    "r": "r",
-    "rb": "ruby",
-    "rq": "sparql",
-    "rs": "rust",
-    "rst": "rst",
-    "s": "gas",
-    "sas": "sas",
-    "sass": "sass",
-    "scala": "clike",
-    "scm": "scheme",
-    "scss": "css",
-    "sh": "shell",
-    "sieve": "sieve",
-    "sig": "asciiarmor",
-    "siv": "sieve",
-    "slim": "slim",
-    "smackspec": "mllike",
-    "sml": "mllike",
-    "soy": "soy",
-    "sparql": "sparql",
-    "sql": "sql",
-    "ss": "scheme",
-    "st": "smalltalk",
-    "styl": "stylus",
-    "swift": "swift",
-    "tcl": "tcl",
-    "tex": "stex",
-    "textile": "textile",
-    "toml": "toml",
-    "tpl": "smarty",
-    "ts": "javascript",
-    "tsx": "javascript",
-    "ttcn": "ttcn",
-    "ttcn3": "ttcn",
-    "ttcnpp": "ttcn",
-    "ttl": "turtle",
-    "vb": "vb",
-    "vbs": "vbscript",
-    "vhd": "vhdl",
-    "vhdl": "vhdl",
-    "vtl": "velocity",
-    "vue": "vue",
-    "wast": "wast",
-    "wat": "wast",
-    "webidl": "webidl",
-    "xml": "xml",
-    "xquery": "xquery",
-    "xsd": "xml",
-    "xsl": "xml",
-    "xu": "mscgen",
-    "xy": "xquery",
-    "yaml": "yaml",
-    "yml": "yaml",
-    "ys": "yacas",
-    "z80": "z80"
-}
-
-def update_editable():
-    try:
-        if 'editable mimetypes' in daconfig and isinstance(daconfig['editable mimetypes'], list):
-            for item in daconfig['editable mimetypes']:
-                if isinstance(item, str):
-                    ok_mimetypes[item] = 'null'
-    except:
-        pass
-
-    try:
-        if 'editable extensions' in daconfig and isinstance(daconfig['editable extensions'], list):
-            for item in daconfig['editable extensions']:
-                if isinstance(item, str):
-                    ok_extensions[item] = 'null'
-    except:
-        pass
-
-update_editable()
-
-default_yaml_filename = daconfig.get('default interview', None)
-final_default_yaml_filename = daconfig.get('default interview', 'docassemble.base:data/questions/default-interview.yml')
-keymap = daconfig.get('keymap', None)
-google_config = daconfig.get('google', {})
-
-contains_volatile = re.compile(r'^(x\.|x\[|.*\[[ijklmn]\])')
-is_integer = re.compile(r'^[0-9]+$')
-detect_mobile = re.compile(r'Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile|Kindle|NetFront|Silk-Accelerated|(hpw|web)OS|Fennec|Minimo|Opera M(obi|ini)|Blazer|Dolfin|Dolphin|Skyfire|Zune')
-alphanumeric_only = re.compile(r'[\W_]+')
-phone_pattern = re.compile(r"^[\d\+\-\(\) ]+$")
-document_match = re.compile(r'^--- *$', flags=re.MULTILINE)
-fix_tabs = re.compile(r'\t')
-fix_initial = re.compile(r'^---\n')
-noquote_match = re.compile(r'"')
-lt_match = re.compile(r'<')
-gt_match = re.compile(r'>')
-amp_match = re.compile(r'&')
-extraneous_var = re.compile(r'^x\.|^x\[')
-key_requires_preassembly = re.compile(r'^(session_local\.|device_local\.|user_local\.|x\.|x\[|_multiple_choice|.*\[[ijklmn]\])')
-#match_invalid = re.compile('[^A-Za-z0-9_\[\].\'\%\-=]')
-#match_invalid_key = re.compile('[^A-Za-z0-9_\[\].\'\%\- =]')
-match_brackets = re.compile(r'\[[BR]?\'[^\]]*\'\]$')
-match_inside_and_outside_brackets = re.compile(r'(.*)(\[[BR]?\'[^\]]*\'\])$')
-match_inside_brackets = re.compile(r'\[([BR]?)\'([^\]]*)\'\]')
-valid_python_var = re.compile(r'^[A-Za-z][A-Za-z0-9\_]*$')
-valid_python_exp = re.compile(r'^[A-Za-z][A-Za-z0-9\_\.]*$')
-
-default_title = daconfig.get('default title', daconfig.get('brandname', 'docassemble'))
-default_short_title = daconfig.get('default short title', default_title)
-os.environ['PYTHON_EGG_CACHE'] = tempfile.gettempdir()
-PNG_RESOLUTION = daconfig.get('png resolution', 300)
-PNG_SCREEN_RESOLUTION = daconfig.get('png screen resolution', 72)
-PDFTOPPM_COMMAND = daconfig.get('pdftoppm', 'pdftoppm')
-DEFAULT_LANGUAGE = daconfig.get('language', 'en')
-DEFAULT_LOCALE = daconfig.get('locale', 'en_US.utf8')
-DEFAULT_DIALECT = daconfig.get('dialect', 'us')
-LOGSERVER = daconfig.get('log server', None)
-CHECKIN_INTERVAL = int(daconfig.get('checkin interval', 6000))
-#message_sequence = dbtableprefix + 'message_id_seq'
-NOTIFICATION_CONTAINER = '<div class="datopcenter col-sm-7 col-md-6 col-lg-5" id="daflash">%s</div>'
-NOTIFICATION_MESSAGE = '<div class="da-alert alert alert-%s alert-dismissible fade show" role="alert">%s<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>'
-
-USING_SUPERVISOR = bool(os.environ.get('SUPERVISOR_SERVER_URL', None))
-
-audio_mimetype_table = {'mp3': 'audio/mpeg', 'ogg': 'audio/ogg'}
-
-valid_voicerss_dialects = {
-    'ca': ['es'],
-    'zh': ['cn', 'hk', 'tw'],
-    'da': ['dk'],
-    'nl': ['nl'],
-    'en': ['au', 'ca', 'gb', 'in', 'us'],
-    'fi': ['fi'],
-    'fr': ['ca, fr'],
-    'de': ['de'],
-    'it': ['it'],
-    'ja': ['jp'],
-    'ko': ['kr'],
-    'nb': ['no'],
-    'pl': ['pl'],
-    'pt': ['br', 'pt'],
-    'ru': ['ru'],
-    'es': ['mx', 'es'],
-    'sv': ['se']
-    }
-
-voicerss_config = daconfig.get('voicerss', None)
-VOICERSS_ENABLED = not bool(not voicerss_config or ('enable' in voicerss_config and not voicerss_config['enable']) or not ('key' in voicerss_config and voicerss_config['key']))
-ROOT = daconfig.get('root', '/')
-#app.logger.warning("default sender is " + current_app.config['MAIL_DEFAULT_SENDER'] + "\n")
-exit_page = daconfig.get('exitpage', 'https://docassemble.org')
-
-SUPERVISORCTL = daconfig.get('supervisorctl', 'supervisorctl')
-#PACKAGE_CACHE = daconfig.get('packagecache', '/var/www/.cache')
-WEBAPP_PATH = daconfig.get('webapp', '/usr/share/docassemble/webapp/docassemble.wsgi')
-UPLOAD_DIRECTORY = daconfig.get('uploads', '/usr/share/docassemble/files')
-PACKAGE_DIRECTORY = daconfig.get('packages', '/usr/share/docassemble/local' + str(sys.version_info.major) + '.' + str(sys.version_info.minor))
-FULL_PACKAGE_DIRECTORY = os.path.join(PACKAGE_DIRECTORY, 'lib', 'python' + str(sys.version_info.major) + '.' + str(sys.version_info.minor), 'site-packages')
-LOG_DIRECTORY = daconfig.get('log', '/usr/share/docassemble/log')
-
-PAGINATION_LIMIT = daconfig.get('pagination limit', 100)
-PAGINATION_LIMIT_PLUS_ONE = PAGINATION_LIMIT + 1
-
-#PLAYGROUND_MODULES_DIRECTORY = daconfig.get('playground_modules', )
-
-init_py_file = """try:
-    __import__('pkg_resources').declare_namespace(__name__)
-except ImportError:
-    __path__ = __import__('pkgutil').extend_path(__path__, __name__)
-"""
-
-#if not os.path.isfile(os.path.join(PLAYGROUND_MODULES_DIRECTORY, 'docassemble', '__init__.py')):
-#    with open(os.path.join(PLAYGROUND_MODULES_DIRECTORY, 'docassemble', '__init__.py'), 'a') as the_file:
-#        the_file.write(init_py_file)
-
-#USE_PROGRESS_BAR = daconfig.get('use_progress_bar', True)
-SHOW_LOGIN = daconfig.get('show login', True)
-ALLOW_REGISTRATION = daconfig.get('allow registration', True)
-#USER_PACKAGES = daconfig.get('user_packages', '/var/lib/docassemble/dist-packages')
-#sys.path.append(USER_PACKAGES)
-#if USE_PROGRESS_BAR:
-
-if in_celery:
-    LOGFILE = daconfig.get('celery flask log', '/tmp/celery-flask.log')
-else:
-    LOGFILE = daconfig.get('flask log', '/tmp/flask.log')
-#APACHE_LOGFILE = daconfig.get('apache_log', '/var/log/apache2/error.log')
-
-#connect_string = docassemble.webapp.database.connection_string()
-#alchemy_connect_string = docassemble.webapp.database.alchemy_connection_string()
-
-mimetypes.add_type('application/x-yaml', '.yml')
-mimetypes.add_type('application/x-yaml', '.yaml')
-
-store = RedisStore(r_store)
-
-kv_session = KVSessionExtension(store, app)
-
-def _call_or_get(function_or_property):
-    return function_or_property() if callable(function_or_property) else function_or_property
-
-def _get_safe_next_param(param_name, default_endpoint):
-    if param_name in request.args:
-        safe_next = current_app.user_manager.make_safe_url_function(urllibunquote(request.args[param_name]))
-        #safe_next = request.args[param_name]
-    else:
-        safe_next = _endpoint_url(default_endpoint)
-    return safe_next
-
-# def _do_login_user(user, safe_next, remember_me=False):
-#     if not user: return unauthenticated()
-
-#     if not _call_or_get(user.is_active):
-#         flash(word('Your account has not been enabled.'), 'error')
-#         return redirect(url_for('user.login'))
-
-#     user_manager = current_app.user_manager
-#     if user_manager.enable_email and user_manager.enable_confirm_email \
-#             and not current_app.user_manager.enable_login_without_confirm_email \
-#             and not user.has_confirmed_email():
-#         url = url_for('user.resend_confirm_email')
-#         flash(docassemble_flask_user.translations.gettext('Your email address has not yet been confirmed. Check your email Inbox and Spam folders for the confirmation email or <a href="%(url)s">Re-send confirmation email</a>.', url=url), 'error')
-#         return redirect(url_for('user.login'))
-
-#     login_user(user, remember=remember_me)
-
-#     signals.user_logged_in.send(current_app._get_current_object(), user=user)
-
-#     flash(word('You have signed in successfully.'), 'success')
-
-#     return redirect(safe_next)
-
-def custom_resend_confirm_email():
-    user_manager = current_app.user_manager
-    form = user_manager.resend_confirm_email_form(request.form)
-    if request.method=='GET' and 'email' in request.args:
-        form.email.data = request.args['email']
-    if request.method=='POST' and form.validate():
-        email = form.email.data
-        user, user_email = user_manager.find_user_by_email(email)
-        if user:
-            docassemble_flask_user.views._send_confirm_email(user, user_email)
-        return redirect(docassemble_flask_user.views._endpoint_url(user_manager.after_resend_confirm_email_endpoint))
-    response = make_response(user_manager.render_function(user_manager.resend_confirm_email_template, form=form), 200)
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
-    return response
-
-def as_int(val):
-    try:
-        return int(val)
-    except:
-        return 0
-
-def custom_register():
-    """Display registration form and create new User."""
-    is_json = bool(('json' in request.form and as_int(request.form['json'])) or ('json' in request.args and as_int(request.args['json'])))
-
-    user_manager =  current_app.user_manager
-    db_adapter = user_manager.db_adapter
-
-    safe_next = _get_safe_next_param('next', user_manager.after_login_endpoint)
-    safe_reg_next = _get_safe_next_param('reg_next', user_manager.after_register_endpoint)
-    if _call_or_get(current_user.is_authenticated) and user_manager.auto_login_at_login:
-        if safe_next == url_for(user_manager.after_login_endpoint):
-            url_parts = list(urlparse(safe_next))
-            query = dict(parse_qsl(url_parts[4]))
-            query.update(dict(from_login=1))
-            url_parts[4] = urlencode(query)
-            safe_next = urlunparse(url_parts)
-        return add_secret_to(redirect(safe_next))
-
-    setup_translation()
-
-    # Initialize form
-    login_form = user_manager.login_form()                      # for login_or_register.html
-    register_form = user_manager.register_form(request.form)    # for register.html
-
-    # invite token used to determine validity of registeree
-    invite_token = request.values.get("token")
-
-    # require invite without a token should disallow the user from registering
-    if user_manager.require_invitation and not invite_token:
-        flash(word("Registration is invite only"), "error")
-        return redirect(url_for('user.login'))
-
-    user_invite = None
-    if invite_token and db_adapter.UserInvitationClass:
-        user_invite = db_adapter.find_first_object(db_adapter.UserInvitationClass, token=invite_token)
-        if user_invite:
-            register_form.invite_token.data = invite_token
-        else:
-            flash(word("Invalid invitation token"), "error")
-            return redirect(url_for('user.login'))
-
-    if request.method != 'POST':
-        login_form.next.data     = register_form.next.data     = safe_next
-        login_form.reg_next.data = register_form.reg_next.data = safe_reg_next
-        if user_invite:
-            register_form.email.data = user_invite.email
-
-    # Process valid POST
-    if request.method == 'POST' and register_form.validate():
-        email_taken = False
-        if daconfig.get('confirm registration', False):
-            try:
-                docassemble_flask_user.forms.unique_email_validator(register_form, register_form.email)
-            except wtforms.ValidationError:
-                email_taken = True
-        if email_taken:
-            flash(word('A confirmation email has been sent to %(email)s with instructions to complete your registration.' % {'email': register_form.email.data}), 'success')
-            subject, html_message, text_message = docassemble_flask_user.emails._render_email(
-                'flask_user/emails/reregistered',
-                app_name=app.config['APP_NAME'],
-                sign_in_link=url_for('user.login', _external=True))
-
-            # Send email message using Flask-Mail
-            user_manager.send_email_function(register_form.email.data, subject, html_message, text_message)
-            return redirect(url_for('user.login'))
-
-        # Create a User object using Form fields that have a corresponding User field
-        User = db_adapter.UserClass
-        user_class_fields = User.__dict__
-        user_fields = {}
-
-        # Create a UserEmail object using Form fields that have a corresponding UserEmail field
-        if db_adapter.UserEmailClass:
-            UserEmail = db_adapter.UserEmailClass
-            user_email_class_fields = UserEmail.__dict__
-            user_email_fields = {}
-
-        # Create a UserAuth object using Form fields that have a corresponding UserAuth field
-        if db_adapter.UserAuthClass:
-            UserAuth = db_adapter.UserAuthClass
-            user_auth_class_fields = UserAuth.__dict__
-            user_auth_fields = {}
-
-        # Enable user account
-        if db_adapter.UserProfileClass:
-            if hasattr(db_adapter.UserProfileClass, 'active'):
-                user_auth_fields['active'] = True
-            elif hasattr(db_adapter.UserProfileClass, 'is_enabled'):
-                user_auth_fields['is_enabled'] = True
-            else:
-                user_auth_fields['is_active'] = True
-        else:
-            if hasattr(db_adapter.UserClass, 'active'):
-                user_fields['active'] = True
-            elif hasattr(db_adapter.UserClass, 'is_enabled'):
-                user_fields['is_enabled'] = True
-            else:
-                user_fields['is_active'] = True
-
-        # For all form fields
-        for field_name, field_value in register_form.data.items():
-            # Hash password field
-            if field_name == 'password':
-                hashed_password = user_manager.hash_password(field_value)
-                if db_adapter.UserAuthClass:
-                    user_auth_fields['password'] = hashed_password
-                else:
-                    user_fields['password'] = hashed_password
-            # Store corresponding Form fields into the User object and/or UserProfile object
-            else:
-                if field_name in user_class_fields:
-                    user_fields[field_name] = field_value
-                if db_adapter.UserEmailClass:
-                    if field_name in user_email_class_fields:
-                        user_email_fields[field_name] = field_value
-                if db_adapter.UserAuthClass:
-                    if field_name in user_auth_class_fields:
-                        user_auth_fields[field_name] = field_value
-        while True:
-            new_social = 'local$' + random_alphanumeric(32)
-            existing_user = db.session.execute(select(UserModel).filter_by(social_id=new_social)).first()
-            if existing_user:
-                continue
-            break
-        user_fields['social_id'] = new_social
-        # Add User record using named arguments 'user_fields'
-        user = db_adapter.add_object(User, **user_fields)
-
-        # Add UserEmail record using named arguments 'user_email_fields'
-        if db_adapter.UserEmailClass:
-            user_email = db_adapter.add_object(UserEmail,
-                    user=user,
-                    is_primary=True,
-                    **user_email_fields)
-        else:
-            user_email = None
-
-        # Add UserAuth record using named arguments 'user_auth_fields'
-        if db_adapter.UserAuthClass:
-            user_auth = db_adapter.add_object(UserAuth, **user_auth_fields)
-            if db_adapter.UserProfileClass:
-                user = user_auth
-            else:
-                user.user_auth = user_auth
-
-        require_email_confirmation = True
-        if user_invite:
-            if user_invite.email == register_form.email.data:
-                require_email_confirmation = False
-                db_adapter.update_object(user, confirmed_at=datetime.datetime.utcnow())
-
-        db_adapter.commit()
-
-        # Send 'registered' email and delete new User object if send fails
-        if user_manager.send_registered_email:
-            try:
-                # Send 'registered' email
-                docassemble_flask_user.views._send_registered_email(user, user_email, require_email_confirmation)
-            except Exception:
-                # delete new User object if send fails
-                db_adapter.delete_object(user)
-                db_adapter.commit()
-                raise
-
-        # Send user_registered signal
-        docassemble_flask_user.signals.user_registered.send(current_app._get_current_object(),
-                                                user=user,
-                                                user_invite=user_invite)
-
-        # Redirect if USER_ENABLE_CONFIRM_EMAIL is set
-        if user_manager.enable_confirm_email and require_email_confirmation:
-            safe_reg_next = user_manager.make_safe_url_function(register_form.reg_next.data)
-            return redirect(safe_reg_next)
-
-        # Auto-login after register or redirect to login page
-        if 'reg_next' in request.args:
-            safe_reg_next = user_manager.make_safe_url_function(register_form.reg_next.data)
-        else:
-            safe_reg_next = _endpoint_url(user_manager.after_confirm_endpoint)
-
-        if user_manager.auto_login_after_register:
-            if app.config['USE_MFA']:
-                if user.otp_secret is None and len(app.config['MFA_REQUIRED_FOR_ROLE']) and user.has_role(*app.config['MFA_REQUIRED_FOR_ROLE']):
-                    session['validated_user'] = user.id
-                    session['next'] = safe_reg_next
-                    if app.config['MFA_ALLOW_APP'] and (twilio_config is None or not app.config['MFA_ALLOW_SMS']):
-                        return redirect(url_for('mfa_setup'))
-                    if not app.config['MFA_ALLOW_APP']:
-                        return redirect(url_for('mfa_sms_setup'))
-                    return redirect(url_for('mfa_choose'))
-            return docassemble_flask_user.views._do_login_user(user, safe_reg_next)
-        return redirect(url_for('user.login') + '?next=' + urllibquote(safe_reg_next))
-
-    # Process GET or invalid POST
-    if is_json:
-        return jsonify(action='register', csrf_token=generate_csrf())
-    response = make_response(user_manager.render_function(user_manager.register_template,
-                                                              form=register_form,
-                                                              login_form=login_form,
-                                                              register_form=register_form), 200)
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
-    return response
-
-def custom_login():
-    """ Prompt for username/email and password and sign the user in."""
-    #sys.stderr.write("In custom_login\n")
-    #logmessage("Doing custom_login")
-
-    is_json = bool(('json' in request.form and as_int(request.form['json'])) or ('json' in request.args and as_int(request.args['json'])))
-    user_manager = current_app.user_manager
-    db_adapter = user_manager.db_adapter
-
-    safe_next = _get_safe_next_param('next', user_manager.after_login_endpoint)
-    safe_reg_next = _get_safe_next_param('reg_next', user_manager.after_register_endpoint)
-    if safe_next and '/officeaddin' in safe_next:
-        g.embed = True
-
-    if _call_or_get(current_user.is_authenticated) and user_manager.auto_login_at_login:
-        if safe_next == url_for(user_manager.after_login_endpoint):
-            url_parts = list(urlparse(safe_next))
-            query = dict(parse_qsl(url_parts[4]))
-            query.update(dict(from_login=1))
-            url_parts[4] = urlencode(query)
-            safe_next = urlunparse(url_parts)
-        return add_secret_to(redirect(safe_next))
-
-    setup_translation()
-
-    login_form = user_manager.login_form(request.form)
-    register_form = user_manager.register_form()
-    if request.method != 'POST':
-        login_form.next.data     = register_form.next.data     = safe_next
-        login_form.reg_next.data = register_form.reg_next.data = safe_reg_next
-    if request.method == 'GET' and 'validated_user' in session:
-        del session['validated_user']
-    if request.method=='POST' and login_form.validate():
-        user = None
-        user_email = None
-        if user_manager.enable_username:
-            user = user_manager.find_user_by_username(login_form.username.data)
-            user_email = None
-            if user and db_adapter.UserEmailClass:
-                user_email = db_adapter.find_first_object(db_adapter.UserEmailClass,
-                        user_id=int(user.get_id()),
-                        is_primary=True,
-                        )
-            if not user and user_manager.enable_email:
-                user, user_email = user_manager.find_user_by_email(login_form.username.data)
-        else:
-            user, user_email = user_manager.find_user_by_email(login_form.email.data)
-        #if not user and daconfig['ldap login'].get('enabled', False):
-        if user:
-            safe_next = user_manager.make_safe_url_function(login_form.next.data)
-            #safe_next = login_form.next.data
-            #safe_next = url_for('post_login', next=login_form.next.data)
-            if app.config['USE_MFA']:
-                if user.otp_secret is None and len(app.config['MFA_REQUIRED_FOR_ROLE']) and user.has_role(*app.config['MFA_REQUIRED_FOR_ROLE']):
-                    session['validated_user'] = user.id
-                    session['next'] = safe_next
-                    if app.config['MFA_ALLOW_APP'] and (twilio_config is None or not app.config['MFA_ALLOW_SMS']):
-                        return redirect(url_for('mfa_setup'))
-                    if not app.config['MFA_ALLOW_APP']:
-                        return redirect(url_for('mfa_sms_setup'))
-                    return redirect(url_for('mfa_choose'))
-                if user.otp_secret is not None:
-                    session['validated_user'] = user.id
-                    session['next'] = safe_next
-                    if user.otp_secret.startswith(':phone:'):
-                        phone_number = re.sub(r'^:phone:', '', user.otp_secret)
-                        verification_code = random_digits(daconfig['verification code digits'])
-                        message = word("Your verification code is") + " " + str(verification_code) + "."
-                        key = 'da:mfa:phone:' + str(phone_number) + ':code'
-                        pipe = r.pipeline()
-                        pipe.set(key, verification_code)
-                        pipe.expire(key, daconfig['verification code timeout'])
-                        pipe.execute()
-                        success = docassemble.base.util.send_sms(to=phone_number, body=message)
-                        if not success:
-                            flash(word("Unable to send verification code."), 'error')
-                            return redirect(url_for('user.login'))
-                    return add_secret_to(redirect(url_for('mfa_login')))
-            if user_manager.enable_email and user_manager.enable_confirm_email \
-               and len(daconfig['email confirmation privileges']) \
-               and user.has_role(*daconfig['email confirmation privileges']) \
-               and not user.has_confirmed_email():
-                url = url_for('user.resend_confirm_email', email=user.email)
-                flash(word('You cannot log in until your e-mail address has been confirmed.') + '<br><a href="' + url + '">' + word('Click here to confirm your e-mail') + '</a>.', 'error')
-                return redirect(url_for('user.login'))
-            return add_secret_to(docassemble_flask_user.views._do_login_user(user, safe_next, login_form.remember_me.data))
-    if is_json:
-        return jsonify(action='login', csrf_token=generate_csrf())
-    # if 'officeaddin' in safe_next:
-    #     extra_css = """
-    # <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.debug.js"></script>"""
-    #     extra_js = """
-    # <script type="text/javascript" src=""" + '"' + url_for('static', filename='office/fabric.js') + '"' + """></script>
-    # <script type="text/javascript" src=""" + '"' + url_for('static', filename='office/polyfill.js') + '"' + """></script>
-    # <script type="text/javascript" src=""" + '"' + url_for('static', filename='office/app.js') + '"' + """></script>"""
-    #     return render_template(user_manager.login_template,
-    #                            form=login_form,
-    #                            login_form=login_form,
-    #                            register_form=register_form,
-    #                            extra_css=Markup(extra_css),
-    #                            extra_js=Markup(extra_js))
-    # else:
-    response = make_response(user_manager.render_function(user_manager.login_template,
-                                                          form=login_form,
-                                                          login_form=login_form,
-                                                          register_form=register_form), 200)
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
-    return response
-
-def add_secret_to(response):
-    if 'newsecret' in session:
-        if 'embed' in g:
-            response.set_cookie('secret', session['newsecret'], httponly=True, secure=app.config['SESSION_COOKIE_SECURE'], samesite='None')
-        else:
-            response.set_cookie('secret', session['newsecret'], httponly=True, secure=app.config['SESSION_COOKIE_SECURE'], samesite=app.config['SESSION_COOKIE_SAMESITE'])
-        del session['newsecret']
-    return response
-
-def logout():
-    # secret = request.cookies.get('secret', None)
-    # if secret is None:
-    #     secret = random_string(16)
-    #     set_cookie = True
-    # else:
-    #     secret = str(secret)
-    #     set_cookie = False
-    user_manager = current_app.user_manager
-    if 'next_arg' in session:
-        next_url = session['next_arg']
-        del session['next_arg']
-    # if 'next' in request.args:
-    #     next_url = request.args['next']
-    elif session.get('language', None) and session['language'] != DEFAULT_LANGUAGE:
-        next_url = _endpoint_url(user_manager.after_logout_endpoint, lang=session['language'])
-    else:
-        next_url = _endpoint_url(user_manager.after_logout_endpoint)
-    if current_user.is_authenticated:
-        if current_user.social_id.startswith('auth0$') and 'oauth' in daconfig and 'auth0' in daconfig['oauth'] and 'domain' in daconfig['oauth']['auth0']:
-            if next_url.startswith('/'):
-                next_url = get_base_url() + next_url
-            next_url = 'https://' + daconfig['oauth']['auth0']['domain'] + '/v2/logout?' + urlencode(dict(returnTo=next_url, client_id=daconfig['oauth']['auth0']['id']))
-        if current_user.social_id.startswith('keycloak$') and 'oauth' in daconfig and 'keycloak' in daconfig['oauth'] and 'domain' in daconfig['oauth']['keycloak']:
-            if next_url.startswith('/'):
-                next_url = get_base_url() + next_url
-            next_url = ('https://' + daconfig['oauth']['keycloak']['domain'] + '/auth/realms/' + daconfig['oauth']['keycloak']['realm'] + '/protocol/openid-connect/logout?' + urlencode(dict(post_logout_redirect_uri=next_url))
-            )
-    else:
-        if session.get('language', None) and session['language'] != DEFAULT_LANGUAGE:
-            next_url = _endpoint_url(user_manager.after_logout_endpoint, lang=session['language'])
-        else:
-            next_url = _endpoint_url(user_manager.after_logout_endpoint)
-    docassemble_flask_user.signals.user_logged_out.send(current_app._get_current_object(), user=current_user)
-    logout_user()
-    delete_session_info()
-    session.clear()
-    flash(word('You have signed out successfully.'), 'success')
-    response = redirect(next_url)
-    response.set_cookie('remember_token', '', expires=0)
-    response.set_cookie('visitor_secret', '', expires=0)
-    response.set_cookie('secret', '', expires=0)
-    response.set_cookie('session', '', expires=0)
-    return response
-
-# def custom_login():
-#     logmessage("custom_login")
-#     user_manager = current_app.user_manager
-#     db_adapter = user_manager.db_adapter
-#     secret = request.cookies.get('secret', None)
-#     if secret is not None:
-#         secret = str(secret)
-#     next_url = request.args.get('next', _endpoint_url(user_manager.after_login_endpoint))
-#     reg_next = request.args.get('reg_next', _endpoint_url(user_manager.after_register_endpoint))
-
-#     if _call_or_get(current_user.is_authenticated) and user_manager.auto_login_at_login:
-#         return redirect(next_url)
-
-#     login_form = user_manager.login_form(request.form)
-#     register_form = user_manager.register_form()
-#     if request.method != 'POST':
-#         login_form.next.data     = register_form.next.data = next_url
-#         login_form.reg_next.data = register_form.reg_next.data = reg_next
-
-#     if request.method == 'POST':
-#         try:
-#             login_form.validate()
-#         except:
-#             logmessage("custom_login: got an error when validating login")
-#             pass
-#     if request.method == 'POST' and login_form.validate():
-#         user = None
-#         user_email = None
-#         if user_manager.enable_username:
-#             user = user_manager.find_user_by_username(login_form.username.data)
-#             user_email = None
-#             if user and db_adapter.UserEmailClass:
-#                 user_email = db_adapter.find_first_object(db_adapter.UserEmailClass,
-#                         user_id=int(user.get_id()),
-#                         is_primary=True,
-#                         )
-#             if not user and user_manager.enable_email:
-#                 user, user_email = user_manager.find_user_by_email(login_form.username.data)
-#         else:
-#             user, user_email = user_manager.find_user_by_email(login_form.email.data)
-
-#         if user:
-#             return _do_login_user(user, login_form.password.data, secret, login_form.next.data, login_form.remember_me.data)
-
-#     return render_template(user_manager.login_template, page_title=word('Sign In'), tab_title=word('Sign In'), form=login_form, login_form=login_form, register_form=register_form)
-
-def unauthenticated():
-    if not request.args.get('nm', False):
-        flash(word("You need to log in before you can access") + " " + word(request.path), 'error')
-    the_url = url_for('user.login', next=fix_http(request.url))
-    return redirect(the_url)
-
-def unauthorized():
-    flash(word("You are not authorized to access") + " " + word(request.path), 'error')
-    return redirect(url_for('interview_list', next=fix_http(request.url)))
 
 def my_default_url(error, endpoint, values):
     return url_for('index')
@@ -1131,13 +193,6 @@ def password_validator(form, field):
             error_message += '.'
         raise wtforms.ValidationError(word(error_message))
 
-the_db_adapter = SQLAlchemyAdapter(db, UserModel, UserAuthClass=UserAuthModel, UserInvitationClass=MyUserInvitation)
-the_user_manager = UserManager()
-the_user_manager.init_app(app, db_adapter=the_db_adapter, login_form=MySignInForm, register_form=MyRegisterForm, user_profile_view_function=user_profile_page, logout_view_function=logout, unauthorized_view_function=unauthorized, unauthenticated_view_function=unauthenticated, login_view_function=custom_login, register_view_function=custom_register, resend_confirm_email_view_function=custom_resend_confirm_email, resend_confirm_email_form=MyResendConfirmEmailForm, password_validator=password_validator, make_safe_url_function=make_safe_url)
-lm = LoginManager()
-lm.init_app(app)
-lm.login_view = 'custom_login'
-lm.anonymous_user = AnonymousUserModel
 
 def login_as_admin(url, url_root):
     found = False
@@ -1492,11 +547,6 @@ def terminate_sms_session(phone_number, config='default'):
     phone_number = docassemble.base.functions.phone_number_in_e164(phone_number)
     r.delete('da:sms:client:' + phone_number + ':server:' + tconfig['number'])
 
-def fix_http(url):
-    if HTTP_TO_HTTPS:
-        return re.sub(r'^http:', 'https:', url)
-    return url
-
 def safe_quote_func(string, safe='', encoding=None, errors=None):
     return urllibquote(string, safe='', encoding=encoding, errors=errors)
 
@@ -1774,8 +824,6 @@ def get_title_documentation():
             return ruamel.yaml.safe_load(content)
     return None
 
-def _call_or_get(function_or_property):
-    return function_or_property() if callable(function_or_property) else function_or_property
 
 def pad_to_16(the_string):
     if len(the_string) >= 16:
@@ -3119,11 +2167,6 @@ def delete_session_sessions():
     if 'sessions' in session:
         del session['sessions']
 
-def delete_session_info():
-    for key in ('i', 'uid', 'key_logged', 'tempuser', 'user_id', 'encrypted', 'chatstatus', 'observer', 'monitor', 'variablefile', 'doing_sms', 'playgroundfile', 'playgroundtemplate', 'playgroundstatic', 'playgroundsources', 'playgroundmodules', 'playgroundpackages', 'taskwait', 'phone_number', 'otp_secret', 'validated_user', 'github_next', 'next', 'sessions'):
-        if key in session:
-            del session[key]
-
 def backup_session():
     backup = {}
     for key in ('i', 'uid', 'key_logged', 'tempuser', 'user_id', 'encrypted', 'chatstatus', 'observer', 'monitor', 'variablefile', 'doing_sms', 'taskwait', 'phone_number', 'otp_secret', 'validated_user', 'github_next', 'next', 'sessions'):
@@ -3155,12 +2198,6 @@ def reset_session(yaml_filename, secret):
         r.incr('da:stats:sessions')
     update_session(yaml_filename, uid=user_code)
     return (user_code, user_dict)
-
-def _endpoint_url(endpoint, **kwargs):
-    url = url_for('index')
-    if endpoint:
-        url = url_for(endpoint, **kwargs)
-    return url
 
 def user_can_edit_package(pkgname=None, giturl=None):
     if current_user.has_role('admin'):
@@ -4575,14 +3612,6 @@ def get_locale():
     translations = [str(translation) for translation in flaskbabel.list_translations()]
     return request.accept_languages.best_match(translations)
 
-def get_user_object(user_id):
-    the_user = db.session.execute(select(UserModel).options(db.joinedload(UserModel.roles)).where(UserModel.id == user_id)).scalar()
-    return the_user
-
-@lm.user_loader
-def load_user(the_id):
-    return UserModel.query.options(db.joinedload(UserModel.roles)).get(int(the_id))
-
 @app.route('/goto', methods=['GET'])
 def run_temp():
     code = request.args.get('c', None)
@@ -4782,7 +3811,7 @@ def phone_login():
 def phone_login_verify():
     if not app.config['USE_PHONE_LOGIN']:
         return ('File not found', 404)
-    phone_number = session.get('phone_number', request.args.get('p', None))
+    phone_number = session.get('phone_number',docassemble_flask_user request.args.get('p', None))
     if phone_number is None:
         return ('File not found', 404)
     form = PhoneLoginVerifyForm(request.form)
@@ -5047,7 +4076,7 @@ def mfa_login():
         return ('File not found', 404)
     form = MFALoginForm(request.form)
     if not form.next.data:
-        form.next.data = _get_safe_next_param('next', url_for('interview_list', from_login='1'))
+        form.next.data = get_safe_next_param('next', url_for('interview_list', from_login='1'))
     if request.method == 'POST' and form.submit.data:
         del session['validated_user']
         if 'next' in session:
@@ -5848,9 +4877,6 @@ def setup_celery():
 
 @app.before_request
 def setup_variables():
-    #sys.stderr.write("Request on " + str(os.getpid()) + " " + str(threading.current_thread().ident) + " for " + request.path + " at " + time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
-    #g.request_start_time = time.time()
-    #docassemble.base.functions.reset_thread_variables()
     docassemble.base.functions.reset_local_variables()
 
 @app.after_request
@@ -5868,41 +4894,6 @@ def apply_security_headers(response):
         response.headers["Content-Security-Policy"] = "frame-ancestors 'self' " + ' '.join(daconfig['cross site domains']) + ';'
     return response
 
-# @app.after_request
-# def print_time_of_request(response):
-#     time_spent = time.time() - g.request_start_time
-#     sys.stderr.write("Request on " + str(os.getpid()) + " " + str(threading.current_thread().ident) + " complete after " + str("%.5fs" % time_spent) + "\n")
-#     if time_spent > 3.0:
-#         if hasattr(g, 'start_index'):
-#             logmessage("Duration to beginning: %fs" % (g.start_index - g.request_start_time))
-#         if hasattr(g, 'got_dict'):
-#             logmessage("Duration to getting dictionary: %fs" % (g.got_dict - g.request_start_time))
-#         if hasattr(g, 'before_interview'):
-#             logmessage("Duration to before interview: %fs" % (g.before_interview - g.request_start_time))
-#         if hasattr(g, 'after_interview'):
-#             logmessage("Duration to after interview: %fs" % (g.after_interview - g.request_start_time))
-#         if hasattr(g, 'status_created'):
-#             logmessage("Duration to status: %fs" % (g.status_created - g.request_start_time))
-#         if hasattr(g, 'assembly_start'):
-#             logmessage("Duration to assembly start: %fs" % (g.assembly_start - g.request_start_time))
-#         if hasattr(g, 'assembly_end'):
-#             logmessage("Duration to assembly end: %fs" % (g.assembly_end - g.request_start_time))
-#         logmessage("Duration to end of request: %fs" % time_spent)
-#         if hasattr(g, 'interview') and hasattr(g, 'interview_status'):
-#             logmessage(to_text(get_history(g.interview, g.interview_status)))
-#     return response
-
-# @app.before_request
-# def setup_celery():
-#     docassemble.webapp.worker.workerapp.set_current()
-
-# @app.before_request
-# def before_request():
-#     docassemble.base.functions.reset_thread_variables()
-#     docassemble.base.functions.reset_local_variables()
-#     g.request_start_time = time.time()
-#     g.request_time = lambda: "%.5fs" % (time.time() - g.request_start_time)
-
 @app.route("/vars", methods=['POST', 'GET'])
 def get_variables():
     yaml_filename = request.args.get('i', None)
@@ -5918,10 +4909,8 @@ def get_variables():
         secret = request.cookies.get('secret', None)
     if secret is not None:
         secret = str(secret)
-    #session_cookie_id = request.cookies.get('session', None)
     if session_id is None or yaml_filename is None:
         return jsonify(success=False)
-    #sys.stderr.write("get_variables: fetch_user_dict\n")
     docassemble.base.functions.this_thread.current_info = current_info(yaml=yaml_filename, req=request, interface='vars', device_id=request.cookies.get('ds', None))
     try:
         steps, user_dict, is_encrypted = fetch_user_dict(session_id, yaml_filename, secret=secret)
@@ -5931,7 +4920,6 @@ def get_variables():
     if (not DEBUG) and '_internal' in user_dict and 'misc' in user_dict['_internal'] and 'variable_access' in user_dict['_internal']['misc'] and user_dict['_internal']['misc']['variable_access'] is False:
         return jsonify(success=False)
     variables = docassemble.base.functions.serializable_dict(user_dict, include_internal=True)
-    #variables['_internal'] = docassemble.base.functions.serializable_dict(user_dict['_internal'])
     return jsonify(success=True, variables=variables, steps=steps, encrypted=is_encrypted, uid=session_id, i=yaml_filename)
 
 @app.route("/", methods=['GET'])
@@ -29136,9 +28124,6 @@ if not in_celery:
     else:
         docassemble.base.logger.set_logmessage(syslog_message)
 
-def get_base_url():
-    return re.sub(r'^(https?://[^/]+).*', r'\1', url_for('rootindex', _external=True))
-
 def null_func(*pargs, **kwargs):
     logmessage("Null function called")
     return None
@@ -29309,27 +28294,6 @@ def fix_api_keys():
         to_delete.append(rkey)
     for rkey in to_delete:
         r.delete(rkey)
-
-class TestContext:
-    def __init__(self, package):
-        self.package = package
-
-    def __enter__(self):
-        url_root = daconfig.get('url root', 'http://localhost') + daconfig.get('root', '/')
-        url = url_root + 'interview'
-        self.app_context = app.app_context()
-        self.app_context.push()
-        self.test_context = app.test_request_context(base_url=url_root, path=url)
-        self.test_context.push()
-        login_as_admin(url, url_root)
-        docassemble.base.functions.this_thread.current_package = self.package
-        docassemble.base.functions.this_thread.current_info.update(dict(yaml_filename=self.package + ':data/questions/test.yml'))
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        current_app.login_manager._update_request_context_with_user()
-        self.test_context.pop()
-        self.app_context.pop()
 
 def initialize():
     global global_css
