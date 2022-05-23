@@ -1,7 +1,7 @@
 from docassemble.base.config import daconfig
 from docassemble.webapp.app_object import app
-from docassemble.webapp.server import login_as_admin
 import docassemble.base.functions
+from docassemble.webapp.authentication import login_as_admin
 from flask import current_app
 
 class TestContext:

@@ -1,7 +1,12 @@
 import docassemble.base.config
+
 if not docassemble.base.config.loaded:
     docassemble.base.config.load()
 
+from docassemble.webapp.backend import advance_progress, url_for
+from docassemble.base.functions import word
+from distutils.version import LooseVersion
+from flask import Markup
 import docassemble.base.util
 import time
 import re
@@ -10,11 +15,13 @@ import os
 import sys
 import mimetypes
 import tempfile
+import ruamel.yaml
 from simplekv.memory.redisstore import RedisStore
-from docassemble.webapp.daredis import r, r_store
+from docassemble.webapp.daredis import r_store
 from docassemble.base.config import daconfig, in_celery
 from docassemblekvsession import KVSessionExtension
 from docassemble.webapp.app_object import app
+from docassemble.webapp.backend import get_info_from_file_reference
 
 docassemble.base.util.set_knn_machine_learner(docassemble.webapp.machinelearning.SimpleTextMachineLearner)
 docassemble.base.util.set_machine_learning_entry(docassemble.webapp.machinelearning.MachineLearningEntry)
@@ -66,7 +73,7 @@ PERMISSIONS_LIST = [
     'log_user_in',
     'playground_control',
     'template_parse'
-    ]
+]
 
 HTTP_TO_HTTPS = daconfig.get('behind https load balancer', False)
 GITHUB_BRANCH = daconfig.get('github default branch name', 'main')
@@ -335,6 +342,7 @@ ok_extensions = {
     "z80": "z80"
 }
 
+
 def update_editable():
     try:
         if 'editable mimetypes' in daconfig and isinstance(daconfig['editable mimetypes'], list):
@@ -352,6 +360,7 @@ def update_editable():
     except:
         pass
 
+
 update_editable()
 
 default_yaml_filename = daconfig.get('default interview', None)
@@ -359,9 +368,21 @@ final_default_yaml_filename = daconfig.get('default interview', 'docassemble.bas
 keymap = daconfig.get('keymap', None)
 google_config = daconfig.get('google', {})
 
+ga_configured = bool(google_config.get('analytics id', None) is not None)
+
+if google_config.get('analytics id', None) is not None or daconfig.get('segment id', None) is not None:
+    analytics_configured = True
+    reserved_argnames = (
+        'i', 'json', 'js_target', 'from_list', 'session', 'cache', 'reset', 'new_session', 'action', 'utm_source',
+        'utm_medium', 'utm_campaign', 'utm_term', 'utm_content')
+else:
+    analytics_configured = False
+    reserved_argnames = ('i', 'json', 'js_target', 'from_list', 'session', 'cache', 'reset', 'new_session', 'action')
+
 contains_volatile = re.compile(r'^(x\.|x\[|.*\[[ijklmn]\])')
 is_integer = re.compile(r'^[0-9]+$')
-detect_mobile = re.compile(r'Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile|Kindle|NetFront|Silk-Accelerated|(hpw|web)OS|Fennec|Minimo|Opera M(obi|ini)|Blazer|Dolfin|Dolphin|Skyfire|Zune')
+detect_mobile = re.compile(
+    r'Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile|Kindle|NetFront|Silk-Accelerated|(hpw|web)OS|Fennec|Minimo|Opera M(obi|ini)|Blazer|Dolfin|Dolphin|Skyfire|Zune')
 alphanumeric_only = re.compile(r'[\W_]+')
 phone_pattern = re.compile(r"^[\d\+\-\(\) ]+$")
 document_match = re.compile(r'^--- *$', flags=re.MULTILINE)
@@ -372,7 +393,8 @@ lt_match = re.compile(r'<')
 gt_match = re.compile(r'>')
 amp_match = re.compile(r'&')
 extraneous_var = re.compile(r'^x\.|^x\[')
-key_requires_preassembly = re.compile(r'^(session_local\.|device_local\.|user_local\.|x\.|x\[|_multiple_choice|.*\[[ijklmn]\])')
+key_requires_preassembly = re.compile(
+    r'^(session_local\.|device_local\.|user_local\.|x\.|x\[|_multiple_choice|.*\[[ijklmn]\])')
 match_brackets = re.compile(r'\[[BR]?\'[^\]]*\'\]$')
 match_inside_and_outside_brackets = re.compile(r'(.*)(\[[BR]?\'[^\]]*\'\])$')
 match_inside_brackets = re.compile(r'\[([BR]?)\'([^\]]*)\'\]')
@@ -390,7 +412,7 @@ DEFAULT_LOCALE = daconfig.get('locale', 'en_US.utf8')
 DEFAULT_DIALECT = daconfig.get('dialect', 'us')
 LOGSERVER = daconfig.get('log server', None)
 CHECKIN_INTERVAL = int(daconfig.get('checkin interval', 6000))
-#message_sequence = dbtableprefix + 'message_id_seq'
+# message_sequence = dbtableprefix + 'message_id_seq'
 NOTIFICATION_CONTAINER = '<div class="datopcenter col-sm-7 col-md-6 col-lg-5" id="daflash">%s</div>'
 NOTIFICATION_MESSAGE = '<div class="da-alert alert alert-%s alert-dismissible fade show" role="alert">%s<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>'
 
@@ -416,20 +438,25 @@ valid_voicerss_dialects = {
     'ru': ['ru'],
     'es': ['mx', 'es'],
     'sv': ['se']
-    }
+}
 
 voicerss_config = daconfig.get('voicerss', None)
-VOICERSS_ENABLED = not bool(not voicerss_config or ('enable' in voicerss_config and not voicerss_config['enable']) or not ('key' in voicerss_config and voicerss_config['key']))
+VOICERSS_ENABLED = not bool(
+    not voicerss_config or ('enable' in voicerss_config and not voicerss_config['enable']) or not (
+            'key' in voicerss_config and voicerss_config['key']))
 ROOT = daconfig.get('root', '/')
-#app.logger.warning("default sender is " + current_app.config['MAIL_DEFAULT_SENDER'] + "\n")
+# app.logger.warning("default sender is " + current_app.config['MAIL_DEFAULT_SENDER'] + "\n")
 exit_page = daconfig.get('exitpage', 'https://docassemble.org')
 
 SUPERVISORCTL = daconfig.get('supervisorctl', 'supervisorctl')
-#PACKAGE_CACHE = daconfig.get('packagecache', '/var/www/.cache')
+# PACKAGE_CACHE = daconfig.get('packagecache', '/var/www/.cache')
 WEBAPP_PATH = daconfig.get('webapp', '/usr/share/docassemble/webapp/docassemble.wsgi')
 UPLOAD_DIRECTORY = daconfig.get('uploads', '/usr/share/docassemble/files')
-PACKAGE_DIRECTORY = daconfig.get('packages', '/usr/share/docassemble/local' + str(sys.version_info.major) + '.' + str(sys.version_info.minor))
-FULL_PACKAGE_DIRECTORY = os.path.join(PACKAGE_DIRECTORY, 'lib', 'python' + str(sys.version_info.major) + '.' + str(sys.version_info.minor), 'site-packages')
+PACKAGE_DIRECTORY = daconfig.get('packages', '/usr/share/docassemble/local' + str(sys.version_info.major) + '.' + str(
+    sys.version_info.minor))
+FULL_PACKAGE_DIRECTORY = os.path.join(PACKAGE_DIRECTORY, 'lib',
+                                      'python' + str(sys.version_info.major) + '.' + str(sys.version_info.minor),
+                                      'site-packages')
 LOG_DIRECTORY = daconfig.get('log', '/usr/share/docassemble/log')
 
 PAGINATION_LIMIT = daconfig.get('pagination limit', 100)
@@ -455,3 +482,308 @@ mimetypes.add_type('application/x-yaml', '.yaml')
 store = RedisStore(r_store)
 
 kv_session = KVSessionExtension(store, app)
+
+
+def get_clicksend_config():
+    if 'clicksend' in daconfig and isinstance(daconfig['clicksend'], (list, dict)):
+        the_clicksend_config = {'name': {}, 'number': {}}
+        if isinstance(daconfig['clicksend'], dict):
+            config_list = [daconfig['clicksend']]
+        else:
+            config_list = daconfig['clicksend']
+        for the_config in config_list:
+            if isinstance(the_config,
+                          dict) and 'api username' in the_config and 'api key' in the_config and 'number' in the_config:
+                if 'country' not in the_config:
+                    the_config['country'] = docassemble.webapp.backend.DEFAULT_COUNTRY or 'US'
+                if 'from email' not in the_config:
+                    the_config['from email'] = app.config['MAIL_DEFAULT_SENDER']
+                the_clicksend_config['number'][str(the_config['number'])] = the_config
+                if 'default' not in the_clicksend_config['name']:
+                    the_clicksend_config['name']['default'] = the_config
+                if 'name' in the_config:
+                    the_clicksend_config['name'][the_config['name']] = the_config
+            else:
+                sys.stderr.write("improper setup in clicksend configuration\n")
+        if 'default' not in the_clicksend_config['name']:
+            the_clicksend_config = None
+    else:
+        the_clicksend_config = None
+    # if fax_provider == 'clicksend' and the_clicksend_config is None:
+    #    sys.stderr.write("improper clicksend configuration; faxing will not be functional\n")
+    return the_clicksend_config
+
+
+clicksend_config = get_clicksend_config()
+
+fax_provider = daconfig.get('fax provider', None) or 'clicksend'
+
+
+def get_telnyx_config():
+    if 'telnyx' in daconfig and isinstance(daconfig['telnyx'], (list, dict)):
+        the_telnyx_config = {'name': {}, 'number': {}}
+        if isinstance(daconfig['telnyx'], dict):
+            config_list = [daconfig['telnyx']]
+        else:
+            config_list = daconfig['telnyx']
+        for the_config in config_list:
+            if isinstance(the_config,
+                          dict) and 'app id' in the_config and 'api key' in the_config and 'number' in the_config:
+                if 'country' not in the_config:
+                    the_config['country'] = docassemble.webapp.backend.DEFAULT_COUNTRY or 'US'
+                if 'from email' not in the_config:
+                    the_config['from email'] = app.config['MAIL_DEFAULT_SENDER']
+                the_telnyx_config['number'][str(the_config['number'])] = the_config
+                if 'default' not in the_telnyx_config['name']:
+                    the_telnyx_config['name']['default'] = the_config
+                if 'name' in the_config:
+                    the_telnyx_config['name'][the_config['name']] = the_config
+            else:
+                sys.stderr.write("improper setup in twilio configuration\n")
+        if 'default' not in the_telnyx_config['name']:
+            the_telnyx_config = None
+    else:
+        the_telnyx_config = None
+    if fax_provider == 'telnyx' and the_telnyx_config is None:
+        sys.stderr.write("improper telnyx configuration; faxing will not be functional\n")
+    return the_telnyx_config
+
+
+telnyx_config = get_telnyx_config()
+
+
+def get_twilio_config():
+    if 'twilio' in daconfig:
+        the_twilio_config = {}
+        the_twilio_config['account sid'] = {}
+        the_twilio_config['number'] = {}
+        the_twilio_config['name'] = {}
+        if not isinstance(daconfig['twilio'], list):
+            config_list = [daconfig['twilio']]
+        else:
+            config_list = daconfig['twilio']
+        for tconfig in config_list:
+            if isinstance(tconfig, dict) and 'account sid' in tconfig and 'number' in tconfig:
+                the_twilio_config['account sid'][str(tconfig['account sid'])] = 1
+                the_twilio_config['number'][str(tconfig['number'])] = tconfig
+                if 'default' not in the_twilio_config['name']:
+                    the_twilio_config['name']['default'] = tconfig
+                if 'name' in tconfig:
+                    the_twilio_config['name'][tconfig['name']] = tconfig
+            else:
+                sys.stderr.write("improper setup in twilio configuration\n")
+        if 'default' not in the_twilio_config['name']:
+            the_twilio_config = None
+    else:
+        the_twilio_config = None
+    return the_twilio_config
+
+
+twilio_config = get_twilio_config()
+
+
+def get_page_parts():
+    the_page_parts = {}
+    if 'global footer' in daconfig:
+        if isinstance(daconfig['global footer'], dict):
+            the_page_parts['global footer'] = {}
+            for lang, val in daconfig['global footer'].items():
+                the_page_parts['global footer'][lang] = Markup(val)
+        else:
+            the_page_parts['global footer'] = {'*': Markup(str(daconfig['global footer']))}
+
+    for page_key in (
+            'login page', 'register page', 'interview page', 'start page', 'profile page', 'reset password page',
+            'forgot password page', 'change password page', '404 page'):
+        for part_key in (
+                'title', 'tab title', 'extra css', 'extra javascript', 'heading', 'pre', 'submit', 'post', 'footer'):
+            key = page_key + ' ' + part_key
+            if key in daconfig:
+                if isinstance(daconfig[key], dict):
+                    the_page_parts[key] = {}
+                    for lang, val in daconfig[key].items():
+                        the_page_parts[key][lang] = Markup(val)
+                else:
+                    the_page_parts[key] = {'*': Markup(str(daconfig[key]))}
+
+    the_main_page_parts = {}
+    lang_list = set()
+    main_page_parts_list = (
+        'main page back button label',
+        'main page continue button label',
+        'main page corner back button label',
+        'main page exit label',
+        'main page exit link',
+        'main page exit url',
+        'main page footer',
+        'main page help label',
+        'main page logo',
+        'main page navigation bar html',
+        'main page post',
+        'main page pre',
+        'main page resume button label',
+        'main page right',
+        'main page short logo',
+        'main page short title',
+        'main page submit',
+        'main page subtitle',
+        'main page title url opens in other window',
+        'main page title url',
+        'main page title',
+        'main page under')
+    for key in main_page_parts_list:
+        if key in daconfig and isinstance(daconfig[key], dict):
+            for lang in daconfig[key]:
+                lang_list.add(lang)
+    lang_list.add(DEFAULT_LANGUAGE)
+    lang_list.add('*')
+    for lang in lang_list:
+        the_main_page_parts[lang] = {}
+    for key in main_page_parts_list:
+        for lang in lang_list:
+            if key in daconfig:
+                if isinstance(daconfig[key], dict):
+                    the_main_page_parts[lang][key] = daconfig[key].get(lang, daconfig[key].get('*', ''))
+                else:
+                    the_main_page_parts[lang][key] = daconfig[key]
+            else:
+                the_main_page_parts[lang][key] = ''
+        if the_main_page_parts[DEFAULT_LANGUAGE][key] == '' and the_main_page_parts['*'][key] != '':
+            the_main_page_parts[DEFAULT_LANGUAGE][key] = the_main_page_parts['*'][key]
+    return (the_page_parts, the_main_page_parts)
+
+
+(page_parts, main_page_parts) = get_page_parts()
+
+app.debug = False
+app.config['CONTAINER_CLASS'] = 'container-fluid' if daconfig.get('admin full width', False) else 'container'
+app.config['USE_GOOGLE_LOGIN'] = False
+app.config['USE_FACEBOOK_LOGIN'] = False
+app.config['USE_TWITTER_LOGIN'] = False
+app.config['USE_AUTH0_LOGIN'] = False
+app.config['USE_KEYCLOAK_LOGIN'] = False
+app.config['USE_AZURE_LOGIN'] = False
+app.config['USE_GOOGLE_DRIVE'] = False
+app.config['USE_ONEDRIVE'] = False
+app.config['USE_PHONE_LOGIN'] = False
+app.config['USE_GITHUB'] = False
+app.config['USE_PASSWORD_LOGIN'] = not bool(daconfig.get('password login', True) is False)
+if twilio_config is not None and daconfig.get('phone login', False) is True:
+    app.config['USE_PHONE_LOGIN'] = True
+if 'oauth' in daconfig:
+    app.config['OAUTH_CREDENTIALS'] = daconfig['oauth']
+    app.config['USE_GOOGLE_LOGIN'] = bool('google' in daconfig['oauth'] and not (
+            'enable' in daconfig['oauth']['google'] and daconfig['oauth']['google']['enable'] is False))
+    app.config['USE_FACEBOOK_LOGIN'] = bool('facebook' in daconfig['oauth'] and not (
+            'enable' in daconfig['oauth']['facebook'] and daconfig['oauth']['facebook']['enable'] is False))
+    app.config['USE_TWITTER_LOGIN'] = bool('twitter' in daconfig['oauth'] and not (
+            'enable' in daconfig['oauth']['twitter'] and daconfig['oauth']['twitter']['enable'] is False))
+    app.config['USE_AUTH0_LOGIN'] = bool('auth0' in daconfig['oauth'] and not (
+            'enable' in daconfig['oauth']['auth0'] and daconfig['oauth']['auth0']['enable'] is False))
+    app.config['USE_KEYCLOAK_LOGIN'] = bool('keycloak' in daconfig['oauth'] and not (
+            'enable' in daconfig['oauth']['keycloak'] and daconfig['oauth']['keycloak']['enable'] is False))
+    app.config['USE_AZURE_LOGIN'] = bool('azure' in daconfig['oauth'] and not (
+            'enable' in daconfig['oauth']['azure'] and daconfig['oauth']['azure']['enable'] is False))
+    app.config['USE_GOOGLE_DRIVE'] = bool('googledrive' in daconfig['oauth'] and not (
+            'enable' in daconfig['oauth']['googledrive'] and daconfig['oauth']['googledrive']['enable'] is False))
+    app.config['USE_ONEDRIVE'] = bool('onedrive' in daconfig['oauth'] and not (
+            'enable' in daconfig['oauth']['onedrive'] and daconfig['oauth']['onedrive']['enable'] is False))
+    app.config['USE_GITHUB'] = bool('github' in daconfig['oauth'] and not (
+            'enable' in daconfig['oauth']['github'] and daconfig['oauth']['github']['enable'] is False))
+else:
+    app.config['OAUTH_CREDENTIALS'] = {}
+app.config['USE_PYPI'] = daconfig.get('pypi', False)
+
+if daconfig.get('button size', 'medium') == 'medium':
+    app.config['BUTTON_CLASS'] = 'btn-da'
+elif daconfig['button size'] == 'large':
+    app.config['BUTTON_CLASS'] = 'btn-lg btn-da'
+elif daconfig['button size'] == 'small':
+    app.config['BUTTON_CLASS'] = 'btn-sm btn-da'
+else:
+    app.config['BUTTON_CLASS'] = 'btn-da'
+
+if daconfig.get('button style', 'normal') == 'normal':
+    app.config['BUTTON_STYLE'] = 'btn-'
+elif daconfig['button style'] == 'outline':
+    app.config['BUTTON_STYLE'] = 'btn-outline-'
+else:
+    app.config['BUTTON_STYLE'] = 'btn-'
+BUTTON_COLOR_NAV_LOGIN = daconfig['button colors'].get('navigation bar login', 'primary')
+app.config['FOOTER_CLASS'] = str(daconfig.get('footer css class', 'bg-light')).strip() + ' dafooter'
+
+
+def get_base_words():
+    documentation = get_info_from_file_reference('docassemble.base:data/sources/base-words.yml')
+    if 'fullpath' in documentation and documentation['fullpath'] is not None:
+        with open(documentation['fullpath'], 'r', encoding='utf-8') as fp:
+            content = fp.read()
+            content = fix_tabs.sub('  ', content)
+            return ruamel.yaml.safe_load(content)
+    return None
+
+
+base_words = get_base_words()
+
+
+def get_title_documentation():
+    documentation = get_info_from_file_reference('docassemble.base:data/questions/title_documentation.yml')
+    if 'fullpath' in documentation and documentation['fullpath'] is not None:
+        with open(documentation['fullpath'], 'r', encoding='utf-8') as fp:
+            content = fp.read()
+            content = fix_tabs.sub('  ', content)
+            return ruamel.yaml.safe_load(content)
+    return None
+
+
+title_documentation = get_title_documentation()
+DOCUMENTATION_BASE = daconfig.get('documentation base url', 'https://docassemble.org/docs/')
+
+
+def get_documentation_dict():
+    documentation = get_info_from_file_reference('docassemble.base:data/questions/documentation.yml')
+    if 'fullpath' in documentation and documentation['fullpath'] is not None:
+        with open(documentation['fullpath'], 'r', encoding='utf-8') as fp:
+            content = fp.read()
+            content = fix_tabs.sub('  ', content)
+            return ruamel.yaml.safe_load(content)
+    return None
+
+
+documentation_dict = get_documentation_dict()
+
+
+def get_name_info():
+    docstring = get_info_from_file_reference('docassemble.base:data/questions/docstring.yml')
+    if 'fullpath' in docstring and docstring['fullpath'] is not None:
+        with open(docstring['fullpath'], 'r', encoding='utf-8') as fp:
+            content = fp.read()
+            content = fix_tabs.sub('  ', content)
+            info = ruamel.yaml.safe_load(content)
+        for val in info:
+            info[val]['name'] = val
+            if 'insert' not in info[val]:
+                info[val]['insert'] = val
+            if 'show' not in info[val]:
+                info[val]['show'] = False
+            if 'exclude' not in info[val]:
+                info[val]['exclude'] = False
+        return info
+    return None
+
+
+base_name_info = get_name_info()
+
+if LooseVersion(min_system_version) > LooseVersion(daconfig['system version']):
+    version_warning = word(
+        "A new docassemble system version is available.  If you are using Docker, install a new Docker image.")
+else:
+    version_warning = None
+
+if COOKIELESS_SESSIONS:
+    index_path = '/i'
+    html_index_path = '/interviefrom docassemble.webapp.backend import advance_progress, can_access_file_number, cloud, directory_for, fetch_previous_user_dict, fetch_user_dict, generate_csrf, get_session_uids, initial_dict, url_for, url_if_existsw'
+else:
+    index_path = '/interview'
+    html_index_path = '/i'
+
