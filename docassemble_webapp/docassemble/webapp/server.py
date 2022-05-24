@@ -53,6 +53,7 @@ import yaml
 from PIL import Image
 from backports import zoneinfo
 from bs4 import BeautifulSoup
+from celery import chord
 from dateutil import tz
 from docassemble.base.config import daconfig, hostname, in_celery
 from docassemble.base.error import DAError, DAErrorMissingVariable
@@ -63,7 +64,6 @@ from docassemble.base.pandoc import convertible_extensions, convertible_mimetype
 from docassemble.base.standardformatter import as_sms, get_choices_with_abb
 from docassemble.base.util import DADict, DAEmail, DAEmailRecipient, DAEmailRecipientList, DAFile, DAFileCollection, \
     DAFileList, DAStaticFile
-from docassemble.webapp.api_key import encrypt_api_key
 from docassemble.webapp.app_object import app, csrf, flaskbabel
 from docassemble.webapp.authentication import backup_session, current_info, decrypt_session, encrypt_session, \
     fix_secret, get_next_link, get_sms_session, get_unique_name, get_user_object, initiate_sms_session, load_user, \
@@ -78,8 +78,9 @@ from docassemble.webapp.config_server import CHECKIN_INTERVAL, COOKIELESS_SESSIO
     ERROR_TYPES_NO_EMAIL, FULL_PACKAGE_DIRECTORY, LOGFILE, LOGSERVER, LOG_DIRECTORY, PAGINATION_LIMIT, \
     PAGINATION_LIMIT_PLUS_ONE, PDFTOPPM_COMMAND, PERMISSIONS_LIST, PNG_RESOLUTION, PNG_SCREEN_RESOLUTION, ROOT, \
     START_TIME, SUPERVISORCTL, UPLOAD_DIRECTORY, USING_SUPERVISOR, WEBAPP_PATH, amp_match, base_words, clicksend_config, \
-    default_yaml_filename, fax_provider, final_default_yaml_filename, gt_match, init_py_file, keymap, lt_match, \
-    main_page_parts, noquote_match, page_parts, telnyx_config, twilio_config, version_warning
+    default_yaml_filename, fax_provider, final_default_yaml_filename, gt_match, keymap, lt_match, \
+    main_page_parts, noquote_match, telnyx_config, twilio_config, version_warning
+from docassemble.webapp.global_values import initialize
 from docassemble.webapp.core.models import Email, EmailAttachment, MachineLearning, Shortener, Supervisors, Uploads
 from docassemble.webapp.daredis import r, r_user
 from docassemble.webapp.db_object import db
@@ -90,16 +91,16 @@ from docassemble.webapp.jsonstore import delete_answer_json, read_answer_json, v
     write_answer_json
 from docassemble.webapp.lock import obtain_lock, release_lock
 from docassemble.webapp.package import get_master_branch, get_package_info, get_package_name_from_zip, \
-    get_url_from_file_reference, import_necessary, \
-    install_git_package, install_pip_package, install_zip_package, uninstall_package, user_can_edit_package
+    get_url_from_file_reference, install_git_package, install_pip_package, install_zip_package, uninstall_package, \
+    user_can_edit_package
 from docassemble.webapp.packages.models import Package
 from docassemble.webapp.page_values import navigation_bar
 from docassemble.webapp.routes.admin import admin
 from docassemble.webapp.routes.auth import auth
 from docassemble.webapp.routes.files import files, html_index
 from docassemble.webapp.routes.google_drive import google_drive
-from docassemble.webapp.routes.index import index
-from docassemble.webapp.routes.interview import interview, interview_menu, set_admin_interviews
+from docassemble.webapp.routes.index import indexBp
+from docassemble.webapp.routes.interview import interview, interview_menu
 from docassemble.webapp.routes.mfa import mfa
 from docassemble.webapp.routes.office import office
 from docassemble.webapp.routes.one_drive import one_drive
@@ -110,9 +111,15 @@ from docassemble.webapp.user_util import api_verify, create_new_interview, get_q
     set_session_variables
 from docassemble.webapp.users.forms import RequestDeveloperForm
 from docassemble.webapp.users.models import ChatLog, Role, TempUser, UserModel, UserRoles
-from docassemble.webapp.util import MD5Hash, RedisCredStorage, add_user_privilege,create_user, from_safeid, get_current_project, get_history, get_part, get_privileges_list,get_referer, get_requester_ip, get_user_info, get_vars_in_use,illegal_variable_name, jsonify_restart_task, jsonify_with_status, make_user_inactive, myb64unquote, pad_to_16,process_file, remove_user_privilege, restart_all, safeid, secure_filename, secure_filename_spaces_ok, set_user_info, should_run_create, sub_indices, summarize_results, transform_json_variables, true_or_false
-from docassemble_flask_user import login_required, roles_required, user_changed_password, user_logged_in,user_registered
-from flask import Markup, Response, current_app, flash, g, jsonify, make_response, redirect, render_template, request,send_file, session
+from docassemble.webapp.util import MD5Hash, RedisCredStorage, add_user_privilege, create_user, from_safeid, \
+    get_current_project, get_history, get_part, get_privileges_list, get_referer, get_requester_ip, get_user_info, \
+    get_vars_in_use, illegal_variable_name, jsonify_restart_task, jsonify_with_status, make_user_inactive, myb64unquote, \
+    pad_to_16, process_file, remove_user_privilege, restart_all, safeid, secure_filename, secure_filename_spaces_ok, \
+    set_user_info, should_run_create, sub_indices, summarize_results, transform_json_variables, true_or_false
+from docassemble_flask_user import login_required, roles_required, user_changed_password, user_logged_in, \
+    user_registered
+from flask import Markup, Response, current_app, flash, g, jsonify, make_response, redirect, render_template, request, \
+    send_file, session
 from flask_cors import cross_origin
 from flask_login import current_user
 from flask_wtf.csrf import CSRFError
@@ -120,7 +127,7 @@ from jinja2.exceptions import TemplateError
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import YamlLexer
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import and_, delete, select
 from twilio.rest import Client as TwilioRestClient
 
 if not in_celery:
@@ -166,42 +173,6 @@ def syslog_message(message):
 
 def syslog_message_with_timestamp(message):
     syslog_message(time.strftime("%Y-%m-%d %H:%M:%S") + " " + message)
-
-
-def copy_playground_modules():
-    root_dir = os.path.join(FULL_PACKAGE_DIRECTORY, 'docassemble')
-    for d in os.listdir(root_dir):
-        if re.search(r'^playground[0-9]', d) and os.path.isdir(os.path.join(root_dir, d)):
-            try:
-                shutil.rmtree(os.path.join(root_dir, d))
-            except:
-                sys.stderr.write("copy_playground_modules: error deleting " + os.path.join(root_dir, d) + "\n")
-    devs = set()
-    for user in db.session.execute(select(UserModel.id).join(UserRoles, UserModel.id == UserRoles.user_id).join(Role,
-                                                                                                                UserRoles.role_id == Role.id).where(
-        and_(UserModel.active == True, or_(Role.name == 'admin', Role.name == 'developer')))):
-        devs.add(user.id)
-    for user_id in devs:
-        mod_dir = SavedFile(user_id, fix=True, section='playgroundmodules')
-        local_dirs = [
-            (os.path.join(FULL_PACKAGE_DIRECTORY, 'docassemble', 'playground' + str(user_id)), mod_dir.directory)]
-        for dirname in mod_dir.list_of_dirs():
-            local_dirs.append((os.path.join(FULL_PACKAGE_DIRECTORY, 'docassemble',
-                                            'playground' + str(user_id) + dirname),
-                               os.path.join(mod_dir.directory, dirname)))
-        for local_dir, mod_directory in local_dirs:
-            if os.path.isdir(local_dir):
-                try:
-                    shutil.rmtree(local_dir)
-                except:
-                    sys.stderr.write("copy_playground_modules: error deleting " + local_dir + " before replacing it\n")
-            os.makedirs(local_dir, exist_ok=True)
-            # sys.stderr.write("Copying " + str(mod_directory) + " to " + str(local_dir) + "\n")
-            for f in [f for f in os.listdir(mod_directory) if re.search(r'^[A-Za-z].*\.py$', f)]:
-                shutil.copyfile(os.path.join(mod_directory, f), os.path.join(local_dir, f))
-            # shutil.copytree(mod_dir.directory, local_dir)
-            with open(os.path.join(local_dir, '__init__.py'), 'w', encoding='utf-8') as the_file:
-                the_file.write(init_py_file)
 
 
 def chat_partners_available(session_id, yaml_filename, the_user_id, mode, partner_roles):
@@ -354,10 +325,11 @@ app.register_blueprint(mfa)
 app.register_blueprint(user)
 app.register_blueprint(interview)
 app.register_blueprint(admin)
-app.register_blueprint(index)
+app.register_blueprint(indexBp)
 app.register_blueprint(google_drive)
 app.register_blueprint(one_drive)
 app.register_blueprint(office)
+app.register_blueprint(files)
 
 
 class ChatPartners:
@@ -3504,21 +3476,6 @@ def sms_body(phone_number, body='question', config='default'):
     return resp.verbs[0].verbs[0].body
 
 
-def test_favicon_file(filename, alt=None):
-    the_dir = docassemble.base.functions.package_data_filename(
-        daconfig.get('favicon', 'docassemble.webapp:data/static/favicon'))
-    if the_dir is None or not os.path.isdir(the_dir):
-        return False
-    the_file = os.path.join(the_dir, filename)
-    if not os.path.isfile(the_file):
-        if alt is not None:
-            the_file = os.path.join(the_dir, alt)
-        if not os.path.isfile(the_file):
-            return False
-    return True
-
-
-app.register_blueprint(files)
 
 
 @app.route("/sms", methods=['POST'])
@@ -7283,130 +7240,16 @@ if in_celery:
 else:
     docassemble.base.functions.update_server(bg_action=docassemble.webapp.worker.background_action,
                                              # async_ocr=docassemble.webapp.worker.async_ocr,
-                                             chord=docassemble.webapp.worker.chord,
+                                             chord=chord,
                                              ocr_page=docassemble.webapp.worker.ocr_page,
                                              ocr_dummy=docassemble.webapp.worker.ocr_dummy,
                                              ocr_finalize=docassemble.webapp.worker.ocr_finalize,
                                              worker_convert=docassemble.webapp.worker.convert)
 
 
-def fix_api_key(match):
-    return 'da:apikey:userid:' + match.group(1) + ':key:' + encrypt_api_key(match.group(2), app.secret_key) + ':info'
-
-
-def fix_api_keys():
-    to_delete = []
-    for rkey in r.keys('da:api:userid:*:key:*:info'):
-        try:
-            rkey = rkey.decode()
-        except:
-            continue
-        try:
-            info = json.loads(r.get(rkey).decode())
-            assert isinstance(info, dict)
-        except:
-            to_delete.append(rkey)
-            continue
-        info['last_four'] = re.sub(r'da:api:userid:.*:key:.*(....):info', r'\1', rkey)
-        new_rkey = re.sub(r'da:api:userid:(.*):key:(.*):info', fix_api_key, rkey)
-        r.set(new_rkey, json.dumps(info))
-        to_delete.append(rkey)
-    for rkey in to_delete:
-        r.delete(rkey)
-
-
-def initialize():
-    global global_css
-    global global_js
-    with app.app_context():
-        url_root = daconfig.get('url root', 'http://localhost') + daconfig.get('root', '/')
-        url = url_root + 'interview'
-        with app.test_request_context(base_url=url_root, path=url):
-            app.config['USE_FAVICON'] = test_favicon_file('favicon.ico')
-            app.config['USE_APPLE_TOUCH_ICON'] = test_favicon_file('apple-touch-icon.png')
-            app.config['USE_FAVICON_MD'] = test_favicon_file('favicon-32x32.png')
-            app.config['USE_FAVICON_SM'] = test_favicon_file('favicon-16x16.png')
-            app.config['USE_SITE_WEBMANIFEST'] = test_favicon_file('site.webmanifest', alt='manifest.json')
-            app.config['USE_SAFARI_PINNED_TAB'] = test_favicon_file('safari-pinned-tab.svg')
-            if 'bootstrap theme' in daconfig and daconfig['bootstrap theme']:
-                try:
-                    app.config['BOOTSTRAP_THEME'] = get_url_from_file_reference(daconfig['bootstrap theme'])
-                    assert isinstance(app.config['BOOTSTRAP_THEME'], str)
-                except:
-                    app.config['BOOTSTRAP_THEME'] = None
-                    sys.stderr.write("error loading bootstrap theme\n")
-            else:
-                app.config['BOOTSTRAP_THEME'] = None
-            if 'global css' in daconfig:
-                for fileref in daconfig['global css']:
-                    try:
-                        global_css_url = get_url_from_file_reference(fileref)
-                        assert isinstance(global_css_url, str)
-                        global_css += "\n" + '    <link href="' + global_css_url + '" rel="stylesheet">'
-                    except:
-                        sys.stderr.write("error loading global css: " + repr(fileref) + "\n")
-            if 'global javascript' in daconfig:
-                for fileref in daconfig['global javascript']:
-                    try:
-                        global_js_url = get_url_from_file_reference(fileref)
-                        assert isinstance(global_js_url, str)
-                        global_js += "\n" + '    <script src="' + global_js_url + '"></script>'
-                    except:
-                        sys.stderr.write("error loading global js: " + repr(fileref) + "\n")
-            if 'raw global css' in daconfig and daconfig['raw global css']:
-                global_css += "\n" + str(daconfig['raw global css'])
-            if 'raw global javascript' in daconfig and daconfig['raw global javascript']:
-                global_js += "\n" + str(daconfig['raw global javascript'])
-            app.config['GLOBAL_CSS'] = global_css
-            app.config['GLOBAL_JS'] = global_js
-            app.config['PARTS'] = page_parts
-            app.config['ADMIN_INTERVIEWS'] = set_admin_interviews()
-            app.config['ENABLE_PLAYGROUND'] = daconfig.get('enable playground', True)
-            app.config['ALLOW_UPDATES'] = daconfig.get('allow updates', True)
-            try:
-                if 'image' in daconfig['social'] and isinstance(daconfig['social']['image'], str):
-                    daconfig['social']['image'] = get_url_from_file_reference(daconfig['social']['image'],
-                                                                              _external=True)
-                    if daconfig['social']['image'] is None:
-                        del daconfig['social']['image']
-                for key, subkey in (('og', 'image'), ('twitter', 'image')):
-                    if key in daconfig['social'] and isinstance(daconfig['social'][key], dict) and subkey in \
-                            daconfig['social'][key] and isinstance(daconfig['social'][key][subkey], str):
-                        daconfig['social'][key][subkey] = get_url_from_file_reference(daconfig['social'][key][subkey],
-                                                                                      _external=True)
-                        if daconfig['social'][key][subkey] is None:
-                            del daconfig['social'][key][subkey]
-            except:
-                sys.stderr.write("Error converting social image references")
-            interviews_to_load = daconfig.get('preloaded interviews', None)
-            if isinstance(interviews_to_load, list):
-                for yaml_filename in daconfig['preloaded interviews']:
-                    try:
-                        docassemble.base.interview_cache.get_interview(yaml_filename)
-                    except:
-                        pass
-            if app.config['ENABLE_PLAYGROUND']:
-                obtain_lock('init' + hostname, 'init')
-                try:
-                    copy_playground_modules()
-                except Exception as err:
-                    sys.stderr.write(
-                        "There was an error copying the playground modules: " + err.__class__.__name__ + "\n")
-                write_pypirc()
-                release_lock('init' + hostname, 'init')
-            try:
-                macro_path = daconfig.get('libreoffice macro file',
-                                          '/var/www/.config/libreoffice/4/user/basic/Standard/Module1.xba')
-                if os.path.isfile(macro_path) and os.path.getsize(macro_path) != 7167:
-                    os.remove(macro_path)
-            except Exception as err:
-                sys.stderr.write("Error was " + err.__class__.__name__ + ' ' + str(err) + "\n")
-            fix_api_keys()
-            import_necessary(url, url_root)
-
-
 def my_default_url(error, endpoint, values):
     return url_for('index')
+
 
 app.handle_url_build_error = my_default_url
 

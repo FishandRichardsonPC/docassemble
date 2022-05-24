@@ -53,7 +53,8 @@ from docassemble.webapp.package import get_master_branch, get_package_info, inst
 from docassemble.webapp.playground import PlaygroundSection
 from docassemble.webapp.setup import da_version
 from docassemble.webapp.translations import setup_translation
-from docassemble.webapp.util import RedisCredStorage, api_verify, ensure_ml_file_exists, get_current_project, \
+from docassemble.webapp.user_util import api_verify
+from docassemble.webapp.util import RedisCredStorage, ensure_ml_file_exists, get_current_project, \
     get_vars_in_use, indent_by, jsonify_restart_task, jsonify_with_status, name_of_user, restart_all, safeid, \
     secure_filename, secure_filename_spaces_ok, should_run_create, splitall, true_or_false, variables_js
 from flask import Blueprint
@@ -4765,7 +4766,7 @@ def get_list_of_projects(user_id):
     return playground.list_of_dirs()
 
 
-@app.route('/api/playground_install', methods=['POST'])
+@playground.route('/api/playground_install', methods=['POST'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['POST', 'HEAD'], automatic_options=True)
 def api_playground_install():

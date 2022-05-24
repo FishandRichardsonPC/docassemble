@@ -1,5 +1,3 @@
-import docassemble.webapp.users.models
-import docassemble.webapp.core.models
 from docassemble.webapp.db_object import db
 from docassemble.base.config import dbtableprefix
 

@@ -3,9 +3,10 @@ import docassemble.base.config
 if not docassemble.base.config.loaded:
     docassemble.base.config.load()
 
-from docassemble.webapp.backend import advance_progress, url_for
+from docassemble.webapp.backend import advance_progress
 from docassemble.base.functions import word
 from distutils.version import LooseVersion
+import docassemble.webapp.machinelearning
 from flask import Markup
 import docassemble.base.util
 import time
@@ -16,6 +17,7 @@ import sys
 import mimetypes
 import tempfile
 import ruamel.yaml
+import docassemble.base.interview_cache
 from simplekv.memory.redisstore import RedisStore
 from docassemble.webapp.daredis import r_store
 from docassemble.base.config import daconfig, in_celery
@@ -78,10 +80,6 @@ PERMISSIONS_LIST = [
 HTTP_TO_HTTPS = daconfig.get('behind https load balancer', False)
 GITHUB_BRANCH = daconfig.get('github default branch name', 'main')
 request_active = True
-
-global_css = ''
-
-global_js = ''
 
 default_playground_yaml = """metadata:
   title: Default playground interview
@@ -786,4 +784,3 @@ if COOKIELESS_SESSIONS:
 else:
     index_path = '/interview'
     html_index_path = '/i'
-

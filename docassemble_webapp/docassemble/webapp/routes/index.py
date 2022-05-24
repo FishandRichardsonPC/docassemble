@@ -47,9 +47,10 @@ from docassemble.webapp.backend import advance_progress, clear_session, decrypt_
 from docassemble.webapp.config_server import ALLOW_REGISTRATION, BUTTON_COLOR_NAV_LOGIN, CHECKIN_INTERVAL, \
     DEFAULT_DIALECT, DEFAULT_LANGUAGE, NOTIFICATION_CONTAINER, NOTIFICATION_MESSAGE, PREVENT_DEMO, REQUIRE_IDEMPOTENT, \
     ROOT, SHOW_LOGIN, STRICT_MODE, analytics_configured, audio_mimetype_table, default_short_title, default_title, \
-    exit_page, final_default_yaml_filename, ga_configured, global_css, global_js, google_config, index_path, is_integer, \
+    exit_page, final_default_yaml_filename, ga_configured, google_config, index_path, is_integer, \
     key_requires_preassembly, main_page_parts, match_brackets, match_inside_and_outside_brackets, match_inside_brackets, \
     reserved_argnames, valid_voicerss_dialects, voicerss_config
+from docassemble.webapp.global_values import global_css, global_js
 from docassemble.webapp.core.models import MachineLearning, SpeakList
 from docassemble.webapp.daredis import r
 from docassemble.webapp.db_object import db
@@ -74,7 +75,7 @@ from pygments.formatters import HtmlFormatter
 from pygments.lexers import YamlLexer
 from sqlalchemy import select
 
-index = Blueprint('files', __name__)
+indexBp = Blueprint('index', __name__)
 
 
 def populate_social(social, metadata):
@@ -479,7 +480,7 @@ def make_response_wrapper(set_cookie, secret, set_device_id, device_id, expire_v
     return the_wrapper
 
 
-@index.route(index_path, methods=['POST', 'GET'])
+@indexBp.route(index_path, methods=['POST', 'GET'])
 def index(action_argument=None, refer=None):
     is_ajax = bool(request.method == 'POST' and 'ajax' in request.form and int(request.form['ajax']))
     docassemble.base.functions.this_thread.misc['call'] = refer

@@ -24,9 +24,11 @@ from docassemble.webapp.daredis import r, r_user
 from docassemble.webapp.db_object import db
 from docassemble.webapp.develop import APIKey
 from docassemble.webapp.translations import setup_translation
+from docassemble.webapp.user_util import api_verify
 from docassemble.webapp.users.forms import ManageAccountForm
 from docassemble.webapp.users.models import MyUserInvitation, Role, UserDictKeys, UserModel
-from docassemble.webapp.util import add_user_privilege, api_verify, create_user, get_requester_ip, get_user_info, jsonify_with_status, \
+from docassemble.webapp.util import add_user_privilege, create_user, get_requester_ip, get_user_info, \
+    jsonify_with_status, \
     make_user_inactive, remove_user_privilege, set_user_info, true_or_false
 from docassemble_flask_user import login_required
 from flask import Blueprint, Markup, abort, current_app, flash, jsonify, redirect, render_template, request, session
@@ -88,11 +90,11 @@ def update_api_key(user_id, api_key, name, method, allowed, add_to_allowed, remo
     return True
 
 
-
-
 def delete_api_key(user_id, api_key):
     key = 'da:apikey:userid:' + str(user_id) + ':key:' + encrypt_api_key(api_key, current_app.secret_key) + ':info'
     r.delete(key)
+
+
 def get_api_info(user_id, name=None, api_key=None):
     result = []
     rkeys = r.keys('da:apikey:userid:' + str(user_id) + ':key:*:info')
@@ -120,7 +122,6 @@ def get_api_info(user_id, name=None, api_key=None):
     if name is not None or api_key is not None:
         return None
     return result
-
 
 
 def existing_api_names(user_id, except_for=None):
@@ -162,6 +163,7 @@ def api_key_exists(user_id, api_key):
     if len(rkeys) > 0:
         return True
     return False
+
 
 def do_api_user_api(user_id):
     if request.method == 'GET':
@@ -335,7 +337,6 @@ def do_api_user_api(user_id):
         if not result:
             return jsonify_with_status("Error updating API key", 400)
         return ('', 204)
-
 
 
 @user.route('/manage_api', methods=['GET', 'POST'])
@@ -554,7 +555,6 @@ def manage_api():
         argu['avail_keys'] = avail_keys
         argu['has_any_keys'] = bool(len(avail_keys) > 0)
     return render_template('pages/manage_api.html', **argu)
-
 
 
 @user.route('/api/user/api', methods=['GET', 'POST', 'DELETE', 'PATCH'])

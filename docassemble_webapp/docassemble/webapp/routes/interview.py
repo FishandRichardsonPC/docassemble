@@ -71,7 +71,7 @@ if not in_celery:
 from flask import abort, request, redirect, \
     jsonify
 
-interview = Blueprint('files', __name__)
+interview = Blueprint('interview', __name__)
 
 
 @interview.route("/launch", methods=['GET'])
@@ -294,7 +294,7 @@ def interview_start():
     if is_json:
         return jsonify(action='menu', interviews=interview_info)
     argu = dict(version_warning=None,
-                interview_info=interview_info)  # extra_css=Markup(global_css), extra_js=Markup(global_js), tab_title=daconfig.get('start page title', word('Interviews')), title=daconfig.get('start page heading', word('Available interviews'))
+                interview_info=interview_info)
     if embed:
         the_page = 'pages/start-embedded.html'
     else:
@@ -525,121 +525,6 @@ def visit_interview():
     response.set_cookie('visitor_secret', obj['secret'], httponly=True, secure=current_app.config['SESSION_COOKIE_SECURE'],
                         samesite=current_app.config['SESSION_COOKIE_SAMESITE'])
     return response
-
-
-class AdminInterview:
-    def can_use(self):
-        if self.require_login and current_user.is_anonymous:
-            return False
-        if self.roles is None:
-            return True
-        if current_user.is_anonymous:
-            if 'anonymous' in self.roles:
-                return True
-            return False
-        if current_user.has_roles(self.roles):
-            return True
-        return False
-
-    def get_title(self, language):
-        if isinstance(self.title, str):
-            return word(self.title, language=language)
-        return self.title.get(language, word(self.title, language=language))
-
-
-def set_admin_interviews():
-    admin_interviews = []
-    if 'administrative interviews' in daconfig:
-        if isinstance(daconfig['administrative interviews'], list):
-            for item in daconfig['administrative interviews']:
-                if isinstance(item, dict):
-                    if 'interview' in item and isinstance(item['interview'], str):
-                        try:
-                            interview = docassemble.base.interview_cache.get_interview(item['interview'])
-                        except:
-                            sys.stderr.write(
-                                "interview " + item['interview'] + " in administrative interviews did not exist" + "\n")
-                            continue
-                        if 'title' in item:
-                            the_title = item['title']
-                        else:
-                            the_title = interview.consolidated_metadata.get('short title',
-                                                                            interview.consolidated_metadata.get('title',
-                                                                                                                None))
-                            if the_title is None:
-                                sys.stderr.write(
-                                    "interview in administrative interviews needs to be given a title" + "\n")
-                                continue
-                        admin_interview = AdminInterview()
-                        admin_interview.interview = item['interview']
-                        if isinstance(the_title, (str, dict)):
-                            if isinstance(the_title, dict):
-                                fault = False
-                                for key, val in the_title.items():
-                                    if not (isinstance(key, str) and isinstance(val, str)):
-                                        fault = True
-                                        break
-                                if fault:
-                                    sys.stderr.write(
-                                        "title of administrative interviews item must be a string or a dictionary with keys and values that are strings" + "\n")
-                                    continue
-                            admin_interview.title = the_title
-                        else:
-                            sys.stderr.write(
-                                "title of administrative interviews item must be a string or a dictionary" + "\n")
-                            continue
-                        if 'required privileges' not in item:
-                            roles = set()
-                            for metadata in interview.metadata:
-                                if 'required privileges for listing' in metadata:
-                                    roles = set()
-                                    privs = metadata['required privileges for listing']
-                                    if isinstance(privs, list):
-                                        for priv in privs:
-                                            if isinstance(priv, str):
-                                                roles.add(priv)
-                                    elif isinstance(privs, str):
-                                        roles.add(privs)
-                                elif 'required privileges' in metadata:
-                                    roles = set()
-                                    privs = metadata['required privileges']
-                                    if isinstance(privs, list):
-                                        for priv in privs:
-                                            if isinstance(priv, str):
-                                                roles.add(priv)
-                                    elif isinstance(privs, str):
-                                        roles.add(privs)
-                            if len(roles) > 0:
-                                item['required privileges'] = list(roles)
-                        if 'required privileges' in item:
-                            fault = False
-                            if isinstance(item['required privileges'], list):
-                                for rolename in item['required privileges']:
-                                    if not isinstance(rolename, str):
-                                        fault = True
-                                        break
-                            else:
-                                fault = True
-                            if fault:
-                                sys.stderr.write(
-                                    "required privileges in administrative interviews item must be a list of strings" + "\n")
-                                admin_interview.roles = None
-                            else:
-                                admin_interview.roles = item['required privileges']
-                        else:
-                            admin_interview.roles = None
-                        admin_interview.require_login = False
-                        for metadata in interview.metadata:
-                            if 'require login' in metadata:
-                                admin_interview.require_login = bool(metadata['require login'])
-                        admin_interviews.append(admin_interview)
-                    else:
-                        sys.stderr.write("item in administrative interviews must contain a valid interview name" + "\n")
-                else:
-                    sys.stderr.write("item in administrative interviews is not a dict" + "\n")
-        else:
-            sys.stderr.write("administrative interviews is not a list" + "\n")
-    return admin_interviews
 
 
 @interview.route('/api/interview', methods=['GET', 'POST'])

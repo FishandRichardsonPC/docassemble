@@ -12,7 +12,8 @@ from docassemble.webapp.authentication import current_info, delete_session_for_i
 from docassemble.webapp.backend import fetch_user_dict, generate_csrf, get_session, guess_yaml_filename, \
     reset_user_dict, url_for
 from docassemble.webapp.config_server import DEBUG, START_TIME, WEBAPP_PATH, exit_page, final_default_yaml_filename, \
-    global_css, global_js, kv_session
+    kv_session
+from docassemble.webapp.global_values import global_css, global_js
 from docassemble.webapp.daredis import r
 from docassemble.webapp.page_values import additional_css, additional_scripts, standard_html_start, \
     standard_scripts
