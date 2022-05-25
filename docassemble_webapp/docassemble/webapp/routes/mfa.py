@@ -65,7 +65,7 @@ def mfa_setup():
                 next_url = session['next']
                 del session['next']
             else:
-                next_url = url_for('interview_list', from_login='1')
+                next_url = url_for('interview.interview_list', from_login='1')
             return docassemble_flask_user.views._do_login_user(user, next_url, False)
         flash(word("You are now set up with two factor authentication."), 'success')
         return redirect(url_for('user_profile_page'))
@@ -106,19 +106,19 @@ def mfa_reconfigure():
     user = load_user(current_user.id)
     if user.otp_secret is None:
         if current_app.config['MFA_ALLOW_APP'] and (twilio_config is None or not current_app.config['MFA_ALLOW_SMS']):
-            return redirect(url_for('mfa_setup'))
+            return redirect(url_for('mfa.mfa_setup'))
         if not current_app.config['MFA_ALLOW_APP']:
-            return redirect(url_for('mfa_sms_setup'))
-        return redirect(url_for('mfa_choose'))
+            return redirect(url_for('mfa.mfa_sms_setup'))
+        return redirect(url_for('mfa.mfa_choose'))
     form = MFAReconfigureForm(request.form)
     if request.method == 'POST':
         if form.reconfigure.data:
             if current_app.config['MFA_ALLOW_APP'] and (
                     twilio_config is None or not current_app.config['MFA_ALLOW_SMS']):
-                return redirect(url_for('mfa_setup'))
+                return redirect(url_for('mfa.mfa_setup'))
             if not current_app.config['MFA_ALLOW_APP']:
-                return redirect(url_for('mfa_sms_setup'))
-            return redirect(url_for('mfa_choose'))
+                return redirect(url_for('mfa.mfa_sms_setup'))
+            return redirect(url_for('mfa.mfa_choose'))
         if form.disable.data and not (len(current_app.config['MFA_REQUIRED_FOR_ROLE']) and current_user.has_role(
                 *current_app.config['MFA_REQUIRED_FOR_ROLE'])):
             user.otp_secret = None
@@ -153,16 +153,16 @@ def mfa_choose():
             *current_app.config['MFA_ROLES']) or not user.social_id.startswith('local'):
         return ('File not found', 404)
     if current_app.config['MFA_ALLOW_APP'] and (twilio_config is None or not current_app.config['MFA_ALLOW_SMS']):
-        return redirect(url_for('mfa_setup'))
+        return redirect(url_for('mfa.mfa_setup'))
     if not current_app.config['MFA_ALLOW_APP']:
-        return redirect(url_for('mfa_sms_setup'))
+        return redirect(url_for('mfa.mfa_sms_setup'))
     user = load_user(user.id)
     form = MFAChooseForm(request.form)
     if request.method == 'POST':
         if form.sms.data:
-            return redirect(url_for('mfa_sms_setup'))
+            return redirect(url_for('mfa.mfa_sms_setup'))
         if form.auth.data:
-            return redirect(url_for('mfa_setup'))
+            return redirect(url_for('mfa.mfa_setup'))
         if in_login:
             del session['validated_user']
             if 'next' in session:
@@ -206,7 +206,7 @@ def mfa_sms_setup():
                 pipe.set(key, verification_code)
                 pipe.expire(key, daconfig['verification code timeout'])
                 pipe.execute()
-                return redirect(url_for('mfa_verify_sms_setup'))
+                return redirect(url_for('mfa.mfa_verify_sms_setup'))
             flash(word("There was a problem sending the text message."), 'error')
             if in_login:
                 del session['validated_user']
@@ -254,7 +254,7 @@ def mfa_verify_sms_setup():
                     next_url = session['next']
                     del session['next']
                 else:
-                    next_url = url_for('interview_list', from_login='1')
+                    next_url = url_for('interview.interview_list', from_login='1')
                 return docassemble_flask_user.views._do_login_user(user, next_url, False)
             flash(word("You are now set up with two factor authentication."), 'success')
             return redirect(url_for('user_profile_page'))
@@ -281,7 +281,7 @@ def mfa_login():
         return ('File not found', 404)
     form = MFALoginForm(request.form)
     if not form.next.data:
-        form.next.data = get_safe_next_param('next', url_for('interview_list', from_login='1'))
+        form.next.data = get_safe_next_param('next', url_for('interview.interview_list', from_login='1'))
     if request.method == 'POST' and form.submit.data:
         del session['validated_user']
         if 'next' in session:

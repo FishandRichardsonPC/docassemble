@@ -197,7 +197,7 @@ def get_question_data(yaml_filename, session_id, secret, use_lock=True, user_dic
         data['cornerBackButton'] = interview_status.cornerback
     data.update(interview_status.as_data(user_dict, encode=encode))
     if 'source' in data:
-        data['source']['varsLink'] = url_for('get_variables', i=yaml_filename)
+        data['source']['varsLink'] = url_for('util.get_variables', i=yaml_filename)
         data['source']['varsLabel'] = word('Show variables and values')
     # if interview_status.question.question_type == "review" and len(interview_status.question.fields_used):
     #    next_action_review = dict(action=list(interview_status.question.fields_used)[0], arguments={})
@@ -240,7 +240,7 @@ def get_question_data(yaml_filename, session_id, secret, use_lock=True, user_dic
     else:
         sign_in_text = word('Sign in to save answers')
     if daconfig.get('resume interview after login', False):
-        login_url = url_for('user.login', next=url_for('index', i=yaml_filename))
+        login_url = url_for('user.login', next=url_for('index.index', i=yaml_filename))
     else:
         login_url = url_for('user.login')
     if interview.consolidated_metadata.get('show login', SHOW_LOGIN):
@@ -267,24 +267,24 @@ def get_question_data(yaml_filename, session_id, secret, use_lock=True, user_dic
                         menu_items.append({'href': url_for('train'), 'anchor': word('Train')})
                     if current_user.has_role('admin', 'developer'):
                         if app.config['ALLOW_UPDATES']:
-                            menu_items.append({'href': url_for('update_package'), 'anchor': word('Package Management')})
-                        menu_items.append({'href': url_for('logs'), 'anchor': word('Logs')})
+                            menu_items.append({'href': url_for('admin.update_package'), 'anchor': word('Package Management')})
+                        menu_items.append({'href': url_for('admin.logs'), 'anchor': word('Logs')})
                         if app.config['ENABLE_PLAYGROUND']:
-                            menu_items.append({'href': url_for('playground_page'), 'anchor': word('Playground')})
+                            menu_items.append({'href': url_for('playground.playground_page'), 'anchor': word('Playground')})
                         menu_items.append({'href': url_for('utilities'), 'anchor': word('Utilities')})
                         if current_user.has_role('admin', 'advocate') or current_user.can_do('access_user_info'):
                             menu_items.append({'href': url_for('user_list'), 'anchor': word('User List')})
                         if current_user.has_role('admin'):
                             menu_items.append({'href': url_for('config_page'), 'anchor': word('Configuration')})
                     if app.config['SHOW_DISPATCH']:
-                        menu_items.append({'href': url_for('interview_start'), 'anchor': word('Available Interviews')})
+                        menu_items.append({'href': url_for('interview.interview_start'), 'anchor': word('Available Interviews')})
                     for item in app.config['ADMIN_INTERVIEWS']:
                         if item.can_use() and docassemble.base.functions.this_thread.current_info.get('yaml_filename',
                                                                                                       '') != item.interview:
-                            menu_items.append({'href': url_for('index'),
+                            menu_items.append({'href': url_for('index.index'),
                                                'anchor': item.get_title(docassemble.base.functions.get_language())})
                     if app.config['SHOW_MY_INTERVIEWS'] or current_user.has_role('admin'):
-                        menu_items.append({'href': url_for('interview_list'), 'anchor': word('My Interviews')})
+                        menu_items.append({'href': url_for('interview.interview_list'), 'anchor': word('My Interviews')})
                     if current_user.has_role('admin', 'developer'):
                         menu_items.append({'href': url_for('user_profile_page'), 'anchor': word('Profile')})
                     else:

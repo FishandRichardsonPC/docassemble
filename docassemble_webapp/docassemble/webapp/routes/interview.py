@@ -115,8 +115,8 @@ def resume():
         ajax_value = int(post_data['ajax'])
         del post_data['ajax']
         if ajax_value:
-            return jsonify(action='redirect', url=url_for('index', **post_data), csrf_token=generate_csrf())
-    return redirect(url_for('index', **post_data))
+            return jsonify(action='redirect', url=url_for('index.index', **post_data), csrf_token=generate_csrf())
+    return redirect(url_for('index.index', **post_data))
 
 
 @interview.route('/start/<package>/<directory>/<filename>/', methods=['GET'])
@@ -249,14 +249,14 @@ def interview_menu(absolute_urls=False, start_new=False, tag=None):
             continue
         if absolute_urls:
             if start_new:
-                url = url_for('run_interview', dispatch=key, _external=True, reset='1')
+                url = url_for('interview.run_interview', dispatch=key, _external=True, reset='1')
             else:
-                url = url_for('redirect_to_interview', dispatch=key, _external=True)
+                url = url_for('interview.redirect_to_interview', dispatch=key, _external=True)
         else:
             if start_new:
-                url = url_for('run_interview', dispatch=key, reset='1')
+                url = url_for('interview.run_interview', dispatch=key, reset='1')
             else:
-                url = url_for('redirect_to_interview', dispatch=key)
+                url = url_for('interview.redirect_to_interview', dispatch=key)
         interview_info.append(dict(link=url, title=interview_title, status_class=status_class, subtitle=subtitle,
                                    subtitle_class=subtitle_class, filename=yaml_filename, package=package,
                                    tags=sorted(tags), metadata=metadata))
@@ -266,10 +266,10 @@ def interview_menu(absolute_urls=False, start_new=False, tag=None):
 @interview.route('/list', methods=['GET'])
 def interview_start():
     if current_user.is_anonymous and not daconfig.get('allow anonymous access', True):
-        return redirect(url_for('user.login', next=url_for('interview_start', **request.args)))
+        return redirect(url_for('user.login', next=url_for('interview.interview_start', **request.args)))
     setup_translation()
     if len(daconfig['dispatch']) == 0:
-        return redirect(url_for('index', i=final_default_yaml_filename))
+        return redirect(url_for('index.index', i=final_default_yaml_filename))
     is_json = bool(('json' in request.form and as_int(request.form['json'])) or (
             'json' in request.args and as_int(request.args['json'])))
     tag = request.args.get('tag', None)
@@ -277,14 +277,14 @@ def interview_start():
         if is_json:
             if tag:
                 return redirect(
-                    url_for('index', i=daconfig.get('dispatch interview'), from_list='1', json='1', tag=tag))
+                    url_for('index.index', i=daconfig.get('dispatch interview'), from_list='1', json='1', tag=tag))
             else:
-                return redirect(url_for('index', i=daconfig.get('dispatch interview'), from_list='1', json='1'))
+                return redirect(url_for('index.index', i=daconfig.get('dispatch interview'), from_list='1', json='1'))
         else:
             if tag:
-                return redirect(url_for('index', i=daconfig.get('dispatch interview'), from_list='1', tag=tag))
+                return redirect(url_for('index.index', i=daconfig.get('dispatch interview'), from_list='1', tag=tag))
             else:
-                return redirect(url_for('index', i=daconfig.get('dispatch interview'), from_list='1'))
+                return redirect(url_for('index.index', i=daconfig.get('dispatch interview'), from_list='1'))
     if 'embedded' in request.args and int(request.args['embedded']):
         the_page = 'pages/start-embedded.html'
         embed = True
@@ -362,14 +362,14 @@ def interview_list():
             the_args['post_restart'] = request.args['post_restart']
         if 'resume' in request.args:
             the_args['resume'] = request.args['resume']
-        response = redirect(url_for('interview_list', **the_args))
+        response = redirect(url_for('interview.interview_list', **the_args))
         response.set_cookie('secret', session['newsecret'], httponly=True,
                             secure=current_app.config['SESSION_COOKIE_SECURE'],
                             samesite=current_app.config['SESSION_COOKIE_SAMESITE'])
         del session['newsecret']
         return response
     if request.method == 'GET' and needs_to_change_password():
-        return redirect(url_for('user.change_password', next=url_for('interview_list')))
+        return redirect(url_for('user.change_password', next=url_for('interview.interview_list')))
     secret = request.cookies.get('secret', None)
     if secret is not None:
         secret = str(secret)
@@ -379,8 +379,8 @@ def interview_list():
             if num_deleted > 0:
                 flash(word("Deleted interviews"), 'success')
             if is_json:
-                return redirect(url_for('interview_list', json='1'))
-            return redirect(url_for('interview_list'))
+                return redirect(url_for('interview.interview_list', json='1'))
+            return redirect(url_for('interview.interview_list'))
         elif form.delete.data:
             yaml_file = form.i.data
             session_id = form.session.data
@@ -389,8 +389,8 @@ def interview_list():
                                 filename=yaml_file)
                 flash(word("Deleted interview"), 'success')
             if is_json:
-                return redirect(url_for('interview_list', json='1'))
-            return redirect(url_for('interview_list'))
+                return redirect(url_for('interview.interview_list', json='1'))
+            return redirect(url_for('interview.interview_list'))
     if request.args.get('from_login', False) or (
             re.search(r'user/(register|sign-in)', str(request.referrer)) and 'next=' not in str(request.referrer)):
         next_page = current_app.user_manager.make_safe_url_function(request.args.get('next', page_after_login()))
@@ -401,9 +401,9 @@ def interview_list():
             return redirect(get_url_from_file_reference(next_page))
     if daconfig.get('session list interview', None) is not None:
         if is_json:
-            return redirect(url_for('index', i=daconfig.get('session list interview'), from_list='1', json='1'))
+            return redirect(url_for('index.index', i=daconfig.get('session list interview'), from_list='1', json='1'))
         else:
-            return redirect(url_for('index', i=daconfig.get('session list interview'), from_list='1'))
+            return redirect(url_for('index.index', i=daconfig.get('session list interview'), from_list='1'))
     exclude_invalid = not current_user.has_role('admin', 'developer')
     resume_interview = request.args.get('resume', None)
     if resume_interview is None and daconfig.get('auto resume interview', None) is not None and (
@@ -421,8 +421,8 @@ def interview_list():
                                                  filename=resume_interview, include_dict=True)
         if len(interviews) > 0:
             return redirect(
-                url_for('index', i=interviews[0]['filename'], session=interviews[0]['session'], from_list='1'))
-        return redirect(url_for('index', i=resume_interview, from_list='1'))
+                url_for('index.index', i=interviews[0]['filename'], session=interviews[0]['session'], from_list='1'))
+        return redirect(url_for('index.index', i=resume_interview, from_list='1'))
     next_id_code = request.args.get('next_id', None)
     if next_id_code:
         try:
@@ -474,7 +474,7 @@ def interview_list():
       });
     </script>"""
     if re.search(r'user/register', str(request.referrer)) and len(interviews) == 1:
-        return redirect(url_for('index', i=interviews[0]['filename'], session=interviews[0]['session'], from_list=1))
+        return redirect(url_for('index.index', i=interviews[0]['filename'], session=interviews[0]['session'], from_list=1))
     tags_used = set()
     for interview in interviews:
         for the_tag in interview['tags']:
@@ -521,7 +521,7 @@ def visit_interview():
         session['user_id'] = current_user.id
     if 'tempuser' in session:
         del session['tempuser']
-    response = redirect(url_for('index', i=i))
+    response = redirect(url_for('index.index', i=i))
     response.set_cookie('visitor_secret', obj['secret'], httponly=True, secure=current_app.config['SESSION_COOKIE_SECURE'],
                         samesite=current_app.config['SESSION_COOKIE_SAMESITE'])
     return response
@@ -647,7 +647,7 @@ def api_interview():
                     output['redirect'] = url_for('user.login')
                     return jsonify(output)
                 if len(daconfig['dispatch']) > 0:
-                    output['redirect'] = url_for('interview_start')
+                    output['redirect'] = url_for('interview.interview_start')
                     return jsonify(output)
                 else:
                     yaml_filename = final_default_yaml_filename
@@ -687,26 +687,26 @@ def api_interview():
         output['i'] = yaml_filename
         output['page_sep'] = "#page"
         if refer is None:
-            output['location_bar'] = url_for('index', **index_params)
+            output['location_bar'] = url_for('index.index', **index_params)
         elif refer[0] in ('start', 'run'):
-            output['location_bar'] = url_for('run_interview_in_package', package=refer[1], filename=refer[2])
+            output['location_bar'] = url_for('interview.run_interview_in_package', package=refer[1], filename=refer[2])
             output['page_sep'] = "#/"
         elif refer[0] in ('start_dispatch', 'run_dispatch'):
-            output['location_bar'] = url_for('run_interview', dispatch=refer[1])
+            output['location_bar'] = url_for('interview.run_interview', dispatch=refer[1])
             output['page_sep'] = "#/"
         elif refer[0] in ('start_directory', 'run_directory'):
-            output['location_bar'] = url_for('run_interview_in_package_directory', package=refer[1], directory=refer[2],
+            output['location_bar'] = url_for('interview.run_interview_in_package_directory', package=refer[1], directory=refer[2],
                                              filename=refer[3])
             output['page_sep'] = "#/"
         else:
             output['location_bar'] = None
             for k, v in daconfig['dispatch'].items():
                 if v == yaml_filename:
-                    output['location_bar'] = url_for('run_interview', dispatch=k)
+                    output['location_bar'] = url_for('interview.run_interview', dispatch=k)
                     output['page_sep'] = "#/"
                     break
             if output['location_bar'] is None:
-                output['location_bar'] = url_for('index', **index_params)
+                output['location_bar'] = url_for('index.index', **index_params)
         send_initial = True
     if not yaml_filename:
         return jsonify_with_status("Parameter i is required.", 400)
@@ -723,7 +723,7 @@ def api_interview():
                                                                                      permissions=['demo_interviews'])):
             return jsonify_with_status(word("Not authorized"), 403)
         if current_user.is_anonymous and not daconfig.get('allow anonymous access', True):
-            output['redirect'] = url_for('user.login', next=url_for('index', i=yaml_filename, **url_args))
+            output['redirect'] = url_for('user.login', next=url_for('index.index', i=yaml_filename, **url_args))
             return jsonify(output)
         if yaml_filename.startswith('docassemble.playground'):
             if not current_app.config['ENABLE_PLAYGROUND']:
@@ -739,7 +739,7 @@ def api_interview():
             if unique_sessions is not False and not current_user.is_authenticated:
                 if yaml_filename in user_info['sessions']:
                     del user_info['sessions'][yaml_filename]
-                output['redirect'] = url_for('user.login', next=url_for('index', i=yaml_filename, **url_args))
+                output['redirect'] = url_for('user.login', next=url_for('index.index', i=yaml_filename, **url_args))
                 return jsonify(output)
             if interview.consolidated_metadata.get('temporary session', False):
                 if yaml_filename in user_info['sessions']:
@@ -756,7 +756,7 @@ def api_interview():
             if current_user.is_anonymous:
                 if (not interview.allowed_to_initiate(is_anonymous=True)) or (
                         not interview.allowed_to_access(is_anonymous=True)):
-                    output['redirect'] = url_for('user.login', next=url_for('index', i=yaml_filename, **url_args))
+                    output['redirect'] = url_for('user.login', next=url_for('index.index', i=yaml_filename, **url_args))
                     return jsonify(output)
             elif not interview.allowed_to_initiate(has_roles=[role.name for role in current_user.roles]):
                 return jsonify_with_status(word("You are not allowed to access this interview."), 403)
@@ -775,13 +775,13 @@ def api_interview():
                 if yaml_filename in user_info['sessions']:
                     del user_info['sessions'][yaml_filename]
                 output['redirect'] = url_for('user.login',
-                                             next=url_for('index', i=yaml_filename, session=session_id, **url_args))
+                                             next=url_for('index.index', i=yaml_filename, session=session_id, **url_args))
                 return jsonify(output)
             if current_user.is_anonymous:
                 if (not interview.allowed_to_initiate(is_anonymous=True)) or (
                         not interview.allowed_to_access(is_anonymous=True)):
                     output['redirect'] = url_for('user.login',
-                                                 next=url_for('index', i=yaml_filename, session=session_id, **url_args))
+                                                 next=url_for('index.index', i=yaml_filename, session=session_id, **url_args))
                     return jsonify(output)
             elif not interview.allowed_to_initiate(has_roles=[role.name for role in current_user.roles]):
                 if yaml_filename in user_info['sessions']:

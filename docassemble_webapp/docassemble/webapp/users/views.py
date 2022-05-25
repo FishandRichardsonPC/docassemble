@@ -303,13 +303,13 @@ def user_profile_page():
         db.session.commit()
         #docassemble.webapp.daredis.clear_user_cache()
         flash(word('Your information was saved.'), 'success')
-        return redirect(url_for('interview_list'))
+        return redirect(url_for('interview.interview_list'))
     response = make_response(render_template('users/user_profile_page.html', version_warning=None, page_title=word('User Profile'), tab_title=word('User Profile'), form=form, debug=debug_status()), 200)
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
     return response
 
 def _endpoint_url(endpoint):
-    url = url_for('index')
+    url = url_for('index.index')
     if endpoint:
         url = url_for(endpoint)
     return url

@@ -96,33 +96,6 @@ def process_audio_video_list(the_list, the_user_dict):
 def textify(data, the_user_dict):
     return list(map((lambda x: x.text(the_user_dict)), data))
 
-# def set_absolute_filename(func):
-#     #logmessage("Running set_absolute_filename in parse")
-#     docassemble.base.functions.set_absolute_filename(func)
-
-# def set_url_finder(func):
-#     docassemble.base.filter.set_url_finder(func)
-#     docassemble.base.functions.set_url_finder(func)
-
-# def set_url_for(func):
-#     docassemble.base.filter.set_url_for(func)
-
-# def set_file_finder(func):
-#     docassemble.base.filter.set_file_finder(func)
-
-# def set_da_send_mail(func):
-#     docassemble.base.filter.set_da_send_mail(func)
-
-# def blank_save_numbered_file(*args, **kwargs):
-#     return (None, None, None)
-
-# save_numbered_file = blank_save_numbered_file
-
-# def set_save_numbered_file(func):
-#     global save_numbered_file
-#     #logmessage("set the save_numbered_file function to " + str(func))
-#     save_numbered_file = func
-
 INITIAL_DICT = dict(_internal=dict(session_local={}, device_local={}, user_local={}, dirty={}, progress=0, tracker=0, docvar={}, doc_cache={}, steps=1, steps_offset=0, secret=None, informed={}, livehelp=dict(availability='unavailable', mode='help', roles=[], partner_roles=[]), answered=set(), answers={}, objselections={}, starttime=None, modtime=None, accesstime={}, tasks={}, gather=[], event_stack={}, misc={}), url_args={}, nav=docassemble.base.functions.DANav())
 
 def set_initial_dict(the_dict):

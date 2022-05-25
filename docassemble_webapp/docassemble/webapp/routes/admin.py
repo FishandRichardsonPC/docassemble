@@ -192,7 +192,7 @@ def github_configure():
         else:
             raise DAError("github_configure: error setting public key")
     r.set('da:using_github:userid:' + str(current_user.id), json.dumps(dict(shared=True, orgs=True)))
-    return redirect(url_for('github_menu'))
+    return redirect(url_for('admin.github_menu'))
 
 
 @admin.route('/github_unconfigure', methods=['POST', 'GET'])
@@ -262,9 +262,9 @@ def github_menu():
     form = GitHubForm(request.form)
     if request.method == 'POST':
         if form.configure.data:
-            return redirect(url_for('github_configure'))
+            return redirect(url_for('admin.github_configure'))
         if form.unconfigure.data:
-            return redirect(url_for('github_unconfigure'))
+            return redirect(url_for('admin.github_unconfigure'))
         if form.cancel.data:
             return redirect(url_for('user_profile_page'))
         if form.save.data:
@@ -355,7 +355,7 @@ def update_package():
             link=docassemble.webapp.worker.reset_server.s(run_create=should_run_create(target)))
         session['taskwait'] = result.id
         session['serverstarttime'] = START_TIME
-        return redirect(url_for('update_package_wait'))
+        return redirect(url_for('admin.update_package_wait'))
     if request.method == 'POST' and form.validate_on_submit():
         if 'zipfile' in request.files and request.files['zipfile'].filename:
             try:
@@ -375,7 +375,7 @@ def update_package():
                         link=docassemble.webapp.worker.reset_server.s(run_create=should_run_create(pkgname)))
                     session['taskwait'] = result.id
                     session['serverstarttime'] = START_TIME
-                    return redirect(url_for('update_package_wait'))
+                    return redirect(url_for('admin.update_package_wait'))
                 else:
                     flash(word("You do not have permission to install this package."), 'error')
             except Exception as errMess:
@@ -398,7 +398,7 @@ def update_package():
                         link=docassemble.webapp.worker.reset_server.s(run_create=should_run_create(packagename)))
                     session['taskwait'] = result.id
                     session['serverstarttime'] = START_TIME
-                    return redirect(url_for('update_package_wait'))
+                    return redirect(url_for('admin.update_package_wait'))
                 else:
                     flash(word("You do not have permission to install this package."), 'error')
             elif form.pippackage.data:
@@ -416,7 +416,7 @@ def update_package():
                         link=docassemble.webapp.worker.reset_server.s(run_create=should_run_create(packagename)))
                     session['taskwait'] = result.id
                     session['serverstarttime'] = START_TIME
-                    return redirect(url_for('update_package_wait'))
+                    return redirect(url_for('admin.update_package_wait'))
                 else:
                     flash(word("You do not have permission to install this package."), 'error')
             else:
@@ -438,7 +438,7 @@ def update_package():
         if (!github_url){
           return;
         }
-        $.get(""" + json.dumps(url_for('get_git_branches')) + """, { url: github_url }, "json")
+        $.get(""" + json.dumps(url_for('admin.get_git_branches')) + """, { url: github_url }, "json")
         .done(function(data){
           //console.log(data);
           if (data.success){
@@ -708,8 +708,8 @@ def observer():
       var daVarLookupRevMulti = Object();
       var daVarLookupSelect = Object();
       var daTargetDiv = "#dabody";
-      var daLocationBar = """ + json.dumps(url_for('index', i=i)) + """;
-      var daPostURL = """ + json.dumps(url_for('index', i=i, _external=True)) + """;
+      var daLocationBar = """ + json.dumps(url_for('index.index', i=i)) + """;
+      var daPostURL = """ + json.dumps(url_for('index.index', i=i, _external=True)) + """;
       var daYamlFilename = """ + json.dumps(i) + """;
       var daGlobalEval = eval;
       var daShowHideHappened = false;
@@ -1391,7 +1391,7 @@ def observer():
         }
         return $.ajax({
           type: "GET",
-          url: """ + '"' + url_for('get_variables', i=i) + '"' + """,
+          url: """ + '"' + url_for('util.get_variables', i=i) + '"' + """,
           success: callback,
           error: function(xhr, status, error){
             setTimeout(function(){

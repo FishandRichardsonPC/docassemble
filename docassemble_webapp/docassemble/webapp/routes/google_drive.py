@@ -81,7 +81,7 @@ def google_drive_callback():
         return redirect(url_for('user.profile'))
     else:
         flash(word('Connected to Google Drive'), 'success')
-    return redirect(url_for('google_drive_page'))
+    return redirect(url_for('google_drive.google_drive_page'))
 
 
 @google_drive.route('/sync_with_google_drive', methods=['GET'])
@@ -93,7 +93,7 @@ def sync_with_google_drive():
         return ('File not found', 404)
     current_project = get_current_project()
     next = current_app.user_manager.make_safe_url_function(
-        request.args.get('next', url_for('playground_page', project=current_project)))
+        request.args.get('next', url_for('playground.playground_page', project=current_project)))
     auto_next = request.args.get('auto_next', None)
     if current_app.config['USE_GOOGLE_DRIVE'] is False:
         flash(word("Google Drive is not configured"), "error")
@@ -107,9 +107,9 @@ def sync_with_google_drive():
     task = docassemble.webapp.worker.sync_with_google_drive.delay(current_user.id)
     session['taskwait'] = task.id
     if auto_next:
-        return redirect(url_for('gd_sync_wait', auto_next=auto_next))
+        return redirect(url_for('google_drive.gd_sync_wait', auto_next=auto_next))
     else:
-        return redirect(url_for('gd_sync_wait', next=next))
+        return redirect(url_for('google_drive.gd_sync_wait', next=next))
 
 
 @google_drive.route('/gdsyncing', methods=['GET', 'POST'])
@@ -121,7 +121,7 @@ def gd_sync_wait():
         return ('File not found', 404)
     current_project = get_current_project()
     next_url = current_app.user_manager.make_safe_url_function(
-        request.args.get('next', url_for('playground_page', project=current_project)))
+        request.args.get('next', url_for('playground.playground_page', project=current_project)))
     auto_next_url = request.args.get('auto_next', None)
     my_csrf = generate_csrf()
     script = """
@@ -135,7 +135,7 @@ def gd_sync_wait():
       function daRestart(){
         $.ajax({
           type: 'POST',
-          url: """ + json.dumps(url_for('restart_ajax')) + """,
+          url: """ + json.dumps(url_for('util.restart_ajax')) + """,
           data: 'csrf_token=""" + my_csrf + """&action=restart',
           success: daRestartCallback,
           dataType: 'json'
@@ -204,7 +204,7 @@ def gd_sync_wait():
         }
         $.ajax({
           type: 'POST',
-          url: """ + json.dumps(url_for('checkin_sync_with_google_drive')) + """,
+          url: """ + json.dumps(url_for('google_drive.checkin_sync_with_google_drive')) + """,
           data: 'csrf_token=""" + my_csrf + """',
           success: daSyncCallback,
           dataType: 'json'
@@ -323,7 +323,7 @@ def google_drive_page():
             storage.release_lock()
             storage.locked_delete()
             flash(word('There was a Google Drive error: ' + err.__class__.__name__ + ": " + str(err)), 'error')
-            return redirect(url_for('google_drive_page'))
+            return redirect(url_for('google_drive.google_drive_page'))
         for the_file in response.get('files', []):
             if the_file['mimeType'] == 'application/vnd.google-apps.shortcut':
                 the_file['id'] = the_file['shortcutDetails']['targetId']
@@ -367,7 +367,7 @@ def google_drive_page():
             response = service.files().get(fileId=the_folder, fields="mimeType, trashed").execute()
         except:
             set_gd_folder(None)
-            return redirect(url_for('google_drive_page'))
+            return redirect(url_for('google_drive.google_drive_page'))
         the_mime_type = response.get('mimeType', None)
         trashed = response.get('trashed', False)
         if trashed is False and the_mime_type == "application/vnd.google-apps.folder":

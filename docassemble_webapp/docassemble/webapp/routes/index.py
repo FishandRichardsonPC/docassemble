@@ -116,7 +116,7 @@ def progress_bar(progress, interview):
 def do_refresh(is_ajax, yaml_filename):
     if is_ajax:
         return jsonify(action='refresh', csrf_token=generate_csrf())
-    return redirect(url_for('index', i=yaml_filename))
+    return redirect(url_for('index.index', i=yaml_filename))
 
 
 def add_action_to_stack(interview_status, user_dict, action, arguments):
@@ -155,7 +155,7 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
     if status.question.can_go_back and steps > 1:
         if status.question.interview.navigation_back_button:
             navbar += """\
-        <form style="display: inline-block" id="dabackbutton" method="POST" action=""" + json.dumps(url_for('index',
+        <form style="display: inline-block" id="dabackbutton" method="POST" action=""" + json.dumps(url_for('index.index',
                                                                                                             **index_params)) + """><input type="hidden" name="csrf_token" value=""" + '"' + generate_csrf() + '"' + """/><input type="hidden" name="_back_one" value="1"/><button class="navbar-brand navbar-nav dabackicon dabackbuttoncolor me-3" type="submit" title=""" + json.dumps(
                 word(
                     "Go back to the previous question")) + """><span class="nav-link"><i class="fas fa-chevron-left"></i><span class="daback">""" + status.cornerback + """</span></span></button></form>
@@ -163,7 +163,7 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
         else:
             navbar += """\
         <form hidden style="display: inline-block" id="dabackbutton" method="POST" action=""" + json.dumps(
-                url_for('index',
+                url_for('index.index',
                         **index_params)) + """><input type="hidden" name="csrf_token" value=""" + '"' + generate_csrf() + '"' + """/><input type="hidden" name="_back_one" value="1"/></form>
 """
     if status.title_url:
@@ -265,7 +265,7 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
     else:
         sign_in_text = word('Sign in to save answers')
     if daconfig.get('resume interview after login', False):
-        login_url = url_for('user.login', next=url_for('index', **index_params))
+        login_url = url_for('user.login', next=url_for('index.index', **index_params))
     else:
         login_url = url_for('user.login')
     if show_login:
@@ -277,7 +277,7 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
                 if daconfig.get('login link style', 'normal') == 'button':
                     if ALLOW_REGISTRATION:
                         if daconfig.get('resume interview after login', False):
-                            register_url = url_for('user.register', next=url_for('index', **index_params))
+                            register_url = url_for('user.register', next=url_for('index.index', **index_params))
                         else:
                             register_url = url_for('user.register')
                         navbar += '            <li class="nav-item"><a class="nav-link" href="' + register_url + '">' + word(
@@ -309,11 +309,11 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
                         navbar += '<a class="dropdown-item" href="' + url_for('train') + '">' + word('Train') + '</a>'
                     if current_user.has_role('admin', 'developer'):
                         if current_app.config['ALLOW_UPDATES']:
-                            navbar += '<a class="dropdown-item" href="' + url_for('update_package') + '">' + word(
+                            navbar += '<a class="dropdown-item" href="' + url_for('admin.update_package') + '">' + word(
                                 'Package Management') + '</a>'
-                        navbar += '<a class="dropdown-item" href="' + url_for('logs') + '">' + word('Logs') + '</a>'
+                        navbar += '<a class="dropdown-item" href="' + url_for('admin.logs') + '">' + word('Logs') + '</a>'
                         if current_app.config['ENABLE_PLAYGROUND']:
-                            navbar += '<a class="dropdown-item" href="' + url_for('playground_page') + '">' + word(
+                            navbar += '<a class="dropdown-item" href="' + url_for('playground.playground_page') + '">' + word(
                                 'Playground') + '</a>'
                         navbar += '<a class="dropdown-item" href="' + url_for('utilities') + '">' + word(
                             'Utilities') + '</a>'
@@ -324,16 +324,16 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
                         navbar += '<a class="dropdown-item" href="' + url_for('config_page') + '">' + word(
                             'Configuration') + '</a>'
                     if current_app.config['SHOW_DISPATCH']:
-                        navbar += '<a class="dropdown-item" href="' + url_for('interview_start') + '">' + word(
+                        navbar += '<a class="dropdown-item" href="' + url_for('interview.interview_start') + '">' + word(
                             'Available Interviews') + '</a>'
                     for item in current_app.config['ADMIN_INTERVIEWS']:
                         if item.can_use() and docassemble.base.functions.this_thread.current_info.get('yaml_filename',
                                                                                                       '') != item.interview:
-                            navbar += '<a class="dropdown-item" href="' + url_for('index', i=item.interview,
+                            navbar += '<a class="dropdown-item" href="' + url_for('index.index', i=item.interview,
                                                                                   new_session='1') + '">' + item.get_title(
                                 docassemble.base.functions.get_language()) + '</a>'
                     if current_app.config['SHOW_MY_INTERVIEWS'] or current_user.has_role('admin'):
-                        navbar += '<a class="dropdown-item" href="' + url_for('interview_list') + '">' + word(
+                        navbar += '<a class="dropdown-item" href="' + url_for('interview.interview_list') + '">' + word(
                             'My Interviews') + '</a>'
                     if current_user.has_role('admin', 'developer'):
                         navbar += '<a class="dropdown-item" href="' + url_for('user_profile_page') + '">' + word(
@@ -554,7 +554,7 @@ def index(action_argument=None, refer=None):
             return redirect(url_for('user.login'))
         if len(daconfig['dispatch']) > 0:
             sys.stderr.write("Redirecting to dispatch page because no YAML filename provided.\n")
-            return redirect(url_for('interview_start'))
+            return redirect(url_for('interview.interview_start'))
         yaml_filename = final_default_yaml_filename
     action = None
     if '_action' in request.form and 'in error' not in session:
@@ -596,7 +596,7 @@ def index(action_argument=None, refer=None):
             raise DAError(word("Not authorized"), code=403)
         if current_user.is_anonymous and not daconfig.get('allow anonymous access', True):
             sys.stderr.write("Redirecting to login because no anonymous access allowed.\n")
-            return redirect(url_for('user.login', next=url_for('index', **request.args)))
+            return redirect(url_for('user.login', next=url_for('index.index', **request.args)))
         if yaml_filename.startswith('docassemble.playground'):
             if not current_app.config['ENABLE_PLAYGROUND']:
                 raise DAError(word("Not authorized"), code=403)
@@ -625,7 +625,7 @@ def index(action_argument=None, refer=None):
                 delete_session_for_interview(yaml_filename)
                 flash(word("You need to be logged in to access this interview."), "info")
                 sys.stderr.write("Redirecting to login because sessions are unique.\n")
-                return redirect(url_for('user.login', next=url_for('index', **request.args)))
+                return redirect(url_for('user.login', next=url_for('index.index', **request.args)))
             if interview.consolidated_metadata.get('temporary session', False):
                 if session_info is not None:
                     reset_user_dict(session_info['uid'], yaml_filename)
@@ -646,7 +646,7 @@ def index(action_argument=None, refer=None):
                     flash(word("You need to be logged in to access this interview."), "info")
                     sys.stderr.write(
                         "Redirecting to login because anonymous user not allowed to access this interview.\n")
-                    return redirect(url_for('user.login', next=url_for('index', **request.args)))
+                    return redirect(url_for('user.login', next=url_for('index.index', **request.args)))
             elif not interview.allowed_to_initiate(has_roles=[role.name for role in current_user.roles]):
                 delete_session_for_interview(yaml_filename)
                 raise DAError(word("You are not allowed to access this interview."), code=403)
@@ -673,7 +673,7 @@ def index(action_argument=None, refer=None):
                 delete_session_for_interview(yaml_filename)
                 flash(word("You need to be logged in to access this interview."), "info")
                 sys.stderr.write("Redirecting to login because sessions are unique.\n")
-                return redirect(url_for('user.login', next=url_for('index', **request.args)))
+                return redirect(url_for('user.login', next=url_for('index.index', **request.args)))
             if current_user.is_anonymous:
                 if (not interview.allowed_to_initiate(is_anonymous=True)) or (
                         not interview.allowed_to_access(is_anonymous=True)):
@@ -681,7 +681,7 @@ def index(action_argument=None, refer=None):
                     flash(word("You need to be logged in to access this interview."), "info")
                     sys.stderr.write(
                         "Redirecting to login because anonymous user not allowed to access this interview.\n")
-                    return redirect(url_for('user.login', next=url_for('index', **request.args)))
+                    return redirect(url_for('user.login', next=url_for('index.index', **request.args)))
             elif not interview.allowed_to_initiate(has_roles=[role.name for role in current_user.roles]):
                 delete_session_for_interview(yaml_filename)
                 raise DAError(word("You are not allowed to access this interview."), code=403)
@@ -739,7 +739,7 @@ def index(action_argument=None, refer=None):
                 sys.stderr.write("Session error because failure to get user dictionary.\n")
                 return do_redirect(redirect_url, is_ajax, is_json, js_target)
         sys.stderr.write("Redirecting back to index because of failure to get user dictionary.\n")
-        response = do_redirect(url_for('index', i=yaml_filename), is_ajax, is_json, js_target)
+        response = do_redirect(url_for('index.index', i=yaml_filename), is_ajax, is_json, js_target)
         if session_parameter is not None:
             flash(word("Unable to retrieve interview session.  Starting a new session instead."), "error")
         return response
@@ -755,7 +755,7 @@ def index(action_argument=None, refer=None):
             sys.stderr.write("Session error because user dictionary was None.\n")
             return do_redirect(redirect_url, is_ajax, is_json, js_target)
         sys.stderr.write("Redirecting back to index because user dictionary was None.\n")
-        response = do_redirect(url_for('index', i=yaml_filename), is_ajax, is_json, js_target)
+        response = do_redirect(url_for('index.index', i=yaml_filename), is_ajax, is_json, js_target)
         flash(word("Unable to locate interview session.  Starting a new session instead."), "error")
         return response
     if encrypted != is_encrypted:
@@ -2296,7 +2296,7 @@ def index(action_argument=None, refer=None):
     if interview_status.question.question_type == "signin":
         release_lock(user_code, yaml_filename)
         sys.stderr.write("Redirecting because of a signin.\n")
-        response = do_redirect(url_for('user.login', next=url_for('index', i=yaml_filename, session=user_code)),
+        response = do_redirect(url_for('user.login', next=url_for('index.index', i=yaml_filename, session=user_code)),
                                is_ajax, is_json, js_target)
         if return_fake_html:
             fake_up(response, current_language)
@@ -2306,7 +2306,7 @@ def index(action_argument=None, refer=None):
     if interview_status.question.question_type == "register":
         release_lock(user_code, yaml_filename)
         sys.stderr.write("Redirecting because of a register.\n")
-        response = do_redirect(url_for('user.register', next=url_for('index', i=yaml_filename, session=user_code)),
+        response = do_redirect(url_for('user.register', next=url_for('index.index', i=yaml_filename, session=user_code)),
                                is_ajax, is_json, js_target)
         if return_fake_html:
             fake_up(response, current_language)
@@ -2539,26 +2539,26 @@ def index(action_argument=None, refer=None):
             segment_id = None
         page_sep = "#page"
         if refer is None:
-            location_bar = url_for('index', **index_params)
+            location_bar = url_for('index.index', **index_params)
         elif refer[0] in ('start', 'run'):
-            location_bar = url_for('run_interview_in_package', package=refer[1], filename=refer[2])
+            location_bar = url_for('interview.run_interview_in_package', package=refer[1], filename=refer[2])
             page_sep = "#/"
         elif refer[0] in ('start_dispatch', 'run_dispatch'):
-            location_bar = url_for('run_interview', dispatch=refer[1])
+            location_bar = url_for('interview.run_interview', dispatch=refer[1])
             page_sep = "#/"
         elif refer[0] in ('start_directory', 'run_directory'):
-            location_bar = url_for('run_interview_in_package_directory', package=refer[1], directory=refer[2],
+            location_bar = url_for('interview.run_interview_in_package_directory', package=refer[1], directory=refer[2],
                                    filename=refer[3])
             page_sep = "#/"
         else:
             location_bar = None
             for k, v in daconfig['dispatch'].items():
                 if v == yaml_filename:
-                    location_bar = url_for('run_interview', dispatch=k)
+                    location_bar = url_for('interview.run_interview', dispatch=k)
                     page_sep = "#/"
                     break
             if location_bar is None:
-                location_bar = url_for('index', **index_params)
+                location_bar = url_for('index.index', **index_params)
         index_params_external = copy.copy(index_params)
         index_params_external['_external'] = True
         the_js = """\
@@ -2612,9 +2612,9 @@ def index(action_argument=None, refer=None):
       var daTargetDiv;
       var daComboBoxes = Object();
       var daGlobalEval = eval;
-      var daInterviewUrl = """ + json.dumps(url_for('index', **index_params)) + """;
+      var daInterviewUrl = """ + json.dumps(url_for('index.index', **index_params)) + """;
       var daLocationBar = """ + json.dumps(location_bar) + """;
-      var daPostURL = """ + json.dumps(url_for('index', **index_params_external)) + """;
+      var daPostURL = """ + json.dumps(url_for('index.index', **index_params_external)) + """;
       var daYamlFilename = """ + json.dumps(yaml_filename) + """;
       var daFetchAcceptIncoming = false;
       var daFetchAjaxTimeout = null;
@@ -3108,7 +3108,7 @@ def index(action_argument=None, refer=None):
         }
         return $.ajax({
           type: "GET",
-          url: """ + '"' + url_for('get_variables', i=yaml_filename) + '"' + """,
+          url: """ + '"' + url_for('util.get_variables', i=yaml_filename) + '"' + """,
           success: callback,
           beforeSend: addCsrfHeader,
           xhrFields: {
@@ -4466,7 +4466,7 @@ def index(action_argument=None, refer=None):
       function daCheckout(){
         $.ajax({
           type: 'POST',
-          url: """ + "'" + url_for('checkout', i=yaml_filename) + "'" + """,
+          url: """ + "'" + url_for('auth.checkout', i=yaml_filename) + "'" + """,
           beforeSend: addCsrfHeader,
           xhrFields: {
             withCredentials: true
@@ -6099,7 +6099,7 @@ def index(action_argument=None, refer=None):
             the_dialect = DEFAULT_DIALECT
         for question_type in ('question', 'help'):
             for audio_format in ('mp3', 'ogg'):
-                interview_status.screen_reader_links[question_type].append([url_for('speak_file', i=yaml_filename,
+                interview_status.screen_reader_links[question_type].append([url_for('files.speak_file', i=yaml_filename,
                                                                                     question=interview_status.question.number,
                                                                                     digest='XXXTHEXXX' + question_type + 'XXXHASHXXX',
                                                                                     type=question_type,
@@ -6191,7 +6191,7 @@ def index(action_argument=None, refer=None):
     else:
         the_nav_bar = ''
         interview_status.using_navigation = False
-    content = as_html(interview_status, debug_mode, url_for('index', **index_params), validation_rules,
+    content = as_html(interview_status, debug_mode, url_for('index.index', **index_params), validation_rules,
                       the_field_errors, the_progress_bar, steps - user_dict['_internal']['steps_offset'])
     if debug_mode:
         readability = {}

@@ -80,13 +80,13 @@ from docassemble.webapp.config_server import CHECKIN_INTERVAL, COOKIELESS_SESSIO
     START_TIME, SUPERVISORCTL, UPLOAD_DIRECTORY, USING_SUPERVISOR, WEBAPP_PATH, amp_match, base_words, clicksend_config, \
     default_yaml_filename, fax_provider, final_default_yaml_filename, gt_match, keymap, lt_match, \
     main_page_parts, noquote_match, telnyx_config, twilio_config, version_warning
-from docassemble.webapp.global_values import initialize
 from docassemble.webapp.core.models import Email, EmailAttachment, MachineLearning, Shortener, Supervisors, Uploads
 from docassemble.webapp.daredis import r, r_user
 from docassemble.webapp.db_object import db
 from docassemble.webapp.develop import ConfigForm, TrainingForm, TrainingUploadForm, Utilities
 from docassemble.webapp.files import SavedFile, get_ext_and_mimetype
 from docassemble.webapp.fixpickle import fix_pickle_obj
+from docassemble.webapp.global_values import initialize
 from docassemble.webapp.jsonstore import delete_answer_json, read_answer_json, variables_snapshot_connection, \
     write_answer_json
 from docassemble.webapp.lock import obtain_lock, release_lock
@@ -95,16 +95,18 @@ from docassemble.webapp.package import get_master_branch, get_package_info, get_
     user_can_edit_package
 from docassemble.webapp.packages.models import Package
 from docassemble.webapp.page_values import navigation_bar
+from docassemble.webapp.routes.playground import playground
+from docassemble.webapp.routes.account import account
 from docassemble.webapp.routes.admin import admin
 from docassemble.webapp.routes.auth import auth
 from docassemble.webapp.routes.files import files, html_index
 from docassemble.webapp.routes.google_drive import google_drive
-from docassemble.webapp.routes.index import indexBp
+from docassemble.webapp.routes.index import index, indexBp
 from docassemble.webapp.routes.interview import interview, interview_menu
 from docassemble.webapp.routes.mfa import mfa
 from docassemble.webapp.routes.office import office
 from docassemble.webapp.routes.one_drive import one_drive
-from docassemble.webapp.routes.user import user
+from docassemble.webapp.routes.util import util
 from docassemble.webapp.setup import da_version
 from docassemble.webapp.translations import setup_translation
 from docassemble.webapp.user_util import api_verify, create_new_interview, get_question_data, go_back_in_session, \
@@ -133,6 +135,7 @@ from twilio.rest import Client as TwilioRestClient
 if not in_celery:
     import docassemble.webapp.worker
 
+request_active = True
 
 def set_request_active(value):
     global request_active
@@ -140,6 +143,7 @@ def set_request_active(value):
 
 
 def syslog_message(message):
+    global request_active
     message = re.sub(r'\n', ' ', message)
     if current_user and current_user.is_authenticated and not current_user.is_anonymous:
         the_user = current_user.email
@@ -320,16 +324,18 @@ def get_locale():
     return request.accept_languages.best_match(translations)
 
 
-app.register_blueprint(auth)
-app.register_blueprint(mfa)
-app.register_blueprint(user)
-app.register_blueprint(interview)
+app.register_blueprint(account)
 app.register_blueprint(admin)
-app.register_blueprint(indexBp)
-app.register_blueprint(google_drive)
-app.register_blueprint(one_drive)
-app.register_blueprint(office)
+app.register_blueprint(auth)
 app.register_blueprint(files)
+app.register_blueprint(google_drive)
+app.register_blueprint(indexBp)
+app.register_blueprint(interview)
+app.register_blueprint(mfa)
+app.register_blueprint(office)
+app.register_blueprint(one_drive)
+app.register_blueprint(playground)
+app.register_blueprint(util)
 
 
 class ChatPartners:
@@ -729,7 +735,7 @@ def rootindex():
     yaml_filename = request.args.get('i', None)
     if yaml_filename is None:
         if 'default interview' not in daconfig and len(daconfig['dispatch']):
-            return redirect(url_for('interview_start'))
+            return redirect(url_for('interview.interview_start'))
         yaml_filename = final_default_yaml_filename
     if COOKIELESS_SESSIONS:
         return html_index()
@@ -861,7 +867,7 @@ def monitor():
         var link = document.querySelector("link[rel*='shortcut icon'") || document.createElement('link');
         link.type = 'image/x-icon';
         link.rel = 'shortcut icon';
-        link.href = '""" + url_for('favicon', nocache="1") + """';
+        link.href = '""" + url_for('files.favicon', nocache="1") + """';
         document.getElementsByTagName('head')[0].appendChild(link);
       }
       function daFaviconAlert(){
@@ -1439,14 +1445,14 @@ def monitor():
           var joinButton = document.createElement('a');
           $(joinButton).addClass("btn """ + app.config['BUTTON_STYLE'] + """warning daobservebutton");
           $(joinButton).html(""" + json.dumps(word("Join")) + """);
-          $(joinButton).attr('href', """ + json.dumps(url_for('visit_interview') + '?') + """ + $.param({i: obj.i, uid: obj.uid, userid: obj.userid}));
+          $(joinButton).attr('href', """ + json.dumps(url_for('interview.visit_interview') + '?') + """ + $.param({i: obj.i, uid: obj.uid, userid: obj.userid}));
           $(joinButton).data('name', 'join');
           $(joinButton).attr('target', '_blank');
           $(joinButton).appendTo($(sessionDiv));
           if (wants_to_chat){
               var openButton = document.createElement('a');
               $(openButton).addClass("btn """ + app.config['BUTTON_STYLE'] + """primary daobservebutton");
-              $(openButton).attr('href', """ + json.dumps(url_for('observer') + '?') + """ + $.param({i: obj.i, uid: obj.uid, userid: obj.userid}));
+              $(openButton).attr('href', """ + json.dumps(url_for('admin.observer') + '?') + """ + $.param({i: obj.i, uid: obj.uid, userid: obj.userid}));
               //$(openButton).attr('href', 'about:blank');
               $(openButton).attr('id', 'observe' + key);
               $(openButton).attr('target', 'iframe' + key);
@@ -1968,13 +1974,13 @@ def config_page():
                     fp.write(form.config_content.data)
                     flash(word('The configuration file was saved.'), 'success')
                 # session['restart'] = 1
-                return redirect(url_for('restart_page'))
+                return redirect(url_for('util.restart_page'))
         elif form.cancel.data:
             flash(word('Configuration not updated.'), 'info')
-            return redirect(url_for('interview_list'))
+            return redirect(url_for('interview.interview_list'))
         else:
             flash(word('Configuration not updated.  There was an error.'), 'error')
-            return redirect(url_for('interview_list'))
+            return redirect(url_for('interview.interview_list'))
     if ok:
         with open(daconfig['config file'], 'r', encoding='utf-8') as fp:
             content = fp.read()
@@ -2257,7 +2263,6 @@ def server_error(the_error):
     if (request.path.endswith('/interview') or request.path.endswith('/start') or request.path.endswith(
             '/run')) and 'in error' not in session and docassemble.base.functions.this_thread.interview is not None and 'error action' in docassemble.base.functions.this_thread.interview.consolidated_metadata and docassemble.base.functions.interview_path() is not None:
         session['in error'] = True
-        # session['action'] = docassemble.base.functions.myb64quote(json.dumps({'action': docassemble.base.functions.this_thread.interview.consolidated_metadata['error action'], 'arguments': dict(error_message=orig_errmess)}))
         return index(action_argument={
             'action': docassemble.base.functions.this_thread.interview.consolidated_metadata['error action'],
             'arguments': dict(error_message=orig_errmess)}, refer=['error'])
@@ -3476,8 +3481,6 @@ def sms_body(phone_number, body='question', config='default'):
     return resp.verbs[0].verbs[0].body
 
 
-
-
 @app.route("/sms", methods=['POST'])
 @csrf.exempt
 def sms():
@@ -4288,17 +4291,14 @@ def do_sms(form, base_url, url_root, config='default', save=True):
                             continue
                         filename = attachment['filename'] + '.' + docassemble.base.parse.extension_of_doc_format[
                             doc_format]
-                        # saved_file = save_numbered_file(filename, attachment['file'][doc_format], yaml_file_name=sess_info['yaml_filename'], uid=sess_info['uid'])
-                        url = url_for('serve_stored_file', _external=True, uid=sess_info['uid'],
+                        url = url_for('files.serve_stored_file', _external=True, uid=sess_info['uid'],
                                       number=attachment['file'][doc_format], filename=attachment['filename'],
                                       extension=docassemble.base.parse.extension_of_doc_format[doc_format])
-                        # logmessage('sms: url is ' + str(url))
                         m.media(url)
                         media_count += 1
         else:
             resp.message(qoutput)
     release_lock(sess_info['uid'], sess_info['yaml_filename'])
-    # logmessage(str(form))
     return resp
 
 
@@ -5765,7 +5765,7 @@ def get_login_url(**kwargs):
     pipe.set(the_key, encrypted_text)
     pipe.expire(the_key, expire)
     pipe.execute()
-    return {"status": "success", "url": url_for('auto_login', key=encryption_key + code, _external=True)}
+    return {"status": "success", "url": url_for('auth.auto_login', key=encryption_key + code, _external=True)}
 
 
 @app.route('/api/user/interviews', methods=['GET', 'DELETE'])
@@ -6173,7 +6173,7 @@ def api_resume_url():
     pipe.set(the_key, json.dumps(info))
     pipe.expire(the_key, expire)
     pipe.execute()
-    return jsonify(url_for('launch', c=code, _external=True))
+    return jsonify(url_for('interview.launch', c=code, _external=True))
 
 
 @app.route('/api/clear_cache', methods=['POST'])
@@ -7248,7 +7248,7 @@ else:
 
 
 def my_default_url(error, endpoint, values):
-    return url_for('index')
+    return url_for('index.index')
 
 
 app.handle_url_build_error = my_default_url

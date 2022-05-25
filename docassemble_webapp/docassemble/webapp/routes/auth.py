@@ -36,7 +36,7 @@ auth = Blueprint('auth', __name__)
 @csrf.exempt
 def oauth_authorize(provider):
     if not current_user.is_anonymous:
-        return redirect(url_for('interview_list', from_login='1'))
+        return redirect(url_for('interview.interview_list', from_login='1'))
     oauth = OAuthSignIn.get_provider(provider)
     next_url = current_app.user_manager.make_safe_url_function(request.args.get('next', ''))
     if next_url:
@@ -48,12 +48,12 @@ def oauth_authorize(provider):
 @csrf.exempt
 def oauth_callback(provider):
     if not current_user.is_anonymous:
-        return redirect(url_for('interview_list', from_login='1'))
+        return redirect(url_for('interview.interview_list', from_login='1'))
     oauth = OAuthSignIn.get_provider(provider)
     social_id, username, email, name_data = oauth.callback()
     if social_id is None:
         flash(word('Authentication failed.'), 'error')
-        return redirect(url_for('interview_list', from_login='1'))
+        return redirect(url_for('interview.interview_list', from_login='1'))
     user = db.session.execute(
         select(UserModel).options(db.joinedload(UserModel.roles)).filter_by(social_id=social_id)).scalar()
     if not user:
@@ -96,7 +96,7 @@ def oauth_callback(provider):
         del session['next']
         response = redirect(the_url)
     else:
-        response = redirect(url_for('interview_list', from_login='1'))
+        response = redirect(url_for('interview.interview_list', from_login='1'))
     response.set_cookie('secret', secret, httponly=True, secure=current_app.config['SESSION_COOKIE_SECURE'],
                         samesite=current_app.config['SESSION_COOKIE_SAMESITE'])
     return response
@@ -107,7 +107,6 @@ def phone_login():
     if not current_app.config['USE_PHONE_LOGIN']:
         return ('File not found', 404)
     form = PhoneLoginForm(request.form)
-    # next = request.args.get('next', url_for('interview_list'))
     if request.method == 'POST' and form.submit.data:
         ok = True
         if form.validate():
@@ -123,7 +122,7 @@ def phone_login():
             message = word("Your verification code is") + " " + str(verification_code) + "."
             user_agent = request.headers.get('User-Agent', '')
             if detect_mobile.search(user_agent):
-                message += '  ' + word("You can also follow this link: ") + url_for('phone_login_verify',
+                message += '  ' + word("You can also follow this link: ") + url_for('auth.phone_login_verify',
                                                                                     _external=True, p=phone_number,
                                                                                     c=verification_code)
             tracker_prefix = 'da:phonelogin:ip:' + str(get_requester_ip(request)) + ':phone:'
@@ -158,7 +157,7 @@ def phone_login():
             success = docassemble.base.util.send_sms(to=phone_number, body=message)
             if success:
                 session['phone_number'] = phone_number
-                return redirect(url_for('phone_login_verify'))
+                return redirect(url_for('auth.phone_login_verify'))
             flash(word("There was a problem sending you a text message.  Please log in another way."), 'error')
             return redirect(url_for('user.login'))
         flash(word("Please enter a valid phone number"), 'error')
@@ -209,7 +208,7 @@ def phone_login_verify():
                         update_session(filename, key_logged=True)
             secret = substitute_secret(str(request.cookies.get('secret', None)),
                                        pad_to_16(MD5Hash(data=social_id).hexdigest()), user=user, to_convert=to_convert)
-            response = redirect(url_for('interview_list', from_login='1'))
+            response = redirect(url_for('interview.interview_list', from_login='1'))
             response.set_cookie('secret', secret, httponly=True, secure=current_app.config['SESSION_COOKIE_SECURE'],
                                 samesite=current_app.config['SESSION_COOKIE_SAMESITE'])
             return response
@@ -255,14 +254,14 @@ def auto_login():
         url_info = dict(i=info['i'])
         if 'url_args' in info:
             url_info.update(info['url_args'])
-        next_url = url_for('index', **url_info)
+        next_url = url_for('index.index', **url_info)
         if 'session' in info:
             update_session(info['i'], uid=info['session'], encrypted=info['encrypted'])
     elif 'next' in info:
         url_info = info.get('url_args', {})
         next_url = get_url_from_file_reference(info['next'], **url_info)
     else:
-        next_url = url_for('interview_list', from_login='1')
+        next_url = url_for('interview.interview_list', from_login='1')
     response = redirect(next_url)
     response.set_cookie('secret', info['secret'], httponly=True, secure=current_app.config['SESSION_COOKIE_SECURE'],
                         samesite=current_app.config['SESSION_COOKIE_SAMESITE'])
@@ -311,17 +310,17 @@ def google_page():
 
 @auth.route("/user/post-sign-in", methods=['GET'])
 def post_sign_in():
-    return redirect(url_for('interview_list', from_login='1'))
+    return redirect(url_for('interview.interview_list', from_login='1'))
 
 
 @auth.route("/restart_session", methods=['GET'])
 def restart_session():
     yaml_filename = request.args.get('i', None)
     if yaml_filename is None:
-        return redirect(url_for('index'))
+        return redirect(url_for('index.index'))
     session_info = get_session(yaml_filename)
     if session_info is None:
-        return redirect(url_for('index'))
+        return redirect(url_for('index.index'))
     session_id = session_info['uid']
     manual_checkout(manual_filename=yaml_filename)
     if 'visitor_secret' in request.cookies:
@@ -337,21 +336,21 @@ def restart_session():
     try:
         steps, user_dict, is_encrypted = fetch_user_dict(session_id, yaml_filename, secret=secret)
     except:
-        return redirect(url_for('index', i=yaml_filename))
+        return redirect(url_for('index.index', i=yaml_filename))
     url_args = user_dict['url_args']
     url_args['reset'] = '1'
     url_args['i'] = yaml_filename
-    return redirect(url_for('index', **url_args))
+    return redirect(url_for('index.index', **url_args))
 
 
 @auth.route("/new_session", methods=['GET'])
 def new_session():
     yaml_filename = request.args.get('i', None)
     if yaml_filename is None:
-        return redirect(url_for('index'))
+        return redirect(url_for('index.index'))
     manual_checkout(manual_filename=yaml_filename)
     url_args = dict(i=yaml_filename, new_session='1')
-    return redirect(url_for('index', **url_args))
+    return redirect(url_for('index.index', **url_args))
 
 
 @auth.route("/checkout", methods=['POST'])

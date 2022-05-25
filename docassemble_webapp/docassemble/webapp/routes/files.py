@@ -634,7 +634,7 @@ def do_serve_uploaded_page(number, page, download=False, size='page'):
 @roles_required(['admin', 'developer'])
 def update_package_wait():
     setup_translation()
-    next_url = current_app.user_manager.make_safe_url_function(request.args.get('next', url_for('update_package')))
+    next_url = current_app.user_manager.make_safe_url_function(request.args.get('next', url_for('admin.update_package')))
     my_csrf = generate_csrf()
     script = """
     <script>
@@ -649,7 +649,7 @@ def update_package_wait():
       function daRestart(){
         $.ajax({
           type: 'POST',
-          url: """ + json.dumps(url_for('restart_ajax')) + """,
+          url: """ + json.dumps(url_for('util.restart_ajax')) + """,
           data: 'csrf_token=""" + my_csrf + """&action=restart',
           success: daRestartCallback,
           dataType: 'json'
@@ -736,7 +736,7 @@ def update_package_wait():
         pollPending = true;
         $.ajax({
           type: 'POST',
-          url: """ + json.dumps(url_for('update_package_ajax')) + """,
+          url: """ + json.dumps(url_for('files.update_package_ajax')) + """,
           data: 'csrf_token=""" + my_csrf + """',
           success: daUpdateCallback,
           error: daBadCallback,

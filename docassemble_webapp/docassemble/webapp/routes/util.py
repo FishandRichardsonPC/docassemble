@@ -164,7 +164,7 @@ def test_embed():
     scripts = standard_scripts(interview_language=current_language, external=True) + additional_scripts(
         interview_status, yaml_filename) + global_js
     response = make_response(render_template('pages/test_embed.html', scripts=scripts, start_part=start_part,
-                                             interview_url=url_for('index', i=yaml_filename, js_target='dablock',
+                                             interview_url=url_for('index.index', i=yaml_filename, js_target='dablock',
                                                                    _external=True), page_title=page_title), 200)
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
     return response
@@ -215,7 +215,7 @@ def restart_page():
       function daRestart(){
         $.ajax({
           type: 'POST',
-          url: """ + json.dumps(url_for('restart_ajax')) + """,
+          url: """ + json.dumps(url_for('util.restart_ajax')) + """,
           data: 'csrf_token=""" + generate_csrf() + """&action=restart',
           success: daRestartCallback,
           dataType: 'json'
@@ -228,7 +228,7 @@ def restart_page():
       });
     </script>"""
     next_url = current_app.user_manager.make_safe_url_function(
-        request.args.get('next', url_for('interview_list', post_restart=1)))
+        request.args.get('next', url_for('interview.interview_list', post_restart=1)))
     extra_meta = """\n    <meta http-equiv="refresh" content="8;URL='""" + next_url + """'">"""
     response = make_response(render_template('pages/restart.html', version_warning=None, bodyclass='daadminbody',
                                              extra_meta=Markup(extra_meta), extra_js=Markup(script),

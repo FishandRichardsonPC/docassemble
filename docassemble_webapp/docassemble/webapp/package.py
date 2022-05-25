@@ -452,26 +452,26 @@ def get_url_from_file_reference(file_reference, **kwargs):
         return url_for('config_page', **kwargs)
     if file_reference == 'leave':
         remove_question_package(kwargs)
-        return url_for('leave', **kwargs)
+        return url_for('util.leave', **kwargs)
     if file_reference == 'logout':
         remove_question_package(kwargs)
         return url_for('user.logout', **kwargs)
     if file_reference == 'restart':
         remove_question_package(kwargs_with_i)
-        return url_for('restart_session', **kwargs_with_i)
+        return url_for('auth.restart_session', **kwargs_with_i)
     if file_reference == 'new_session':
         remove_question_package(kwargs_with_i)
-        return url_for('new_session', **kwargs_with_i)
+        return url_for('auth.new_session', **kwargs_with_i)
     if file_reference == 'help':
         return 'javascript:daShowHelpTab()'
     if file_reference == 'interview':
         remove_question_package(kwargs)
-        return url_for('index', **kwargs)
+        return url_for('index.index', **kwargs)
     if file_reference == 'flex_interview':
         remove_question_package(kwargs)
         how_called = docassemble.base.functions.this_thread.misc.get('call', None)
         if how_called is None:
-            return url_for('index', **kwargs)
+            return url_for('index.index', **kwargs)
         try:
             if int(kwargs.get('new_session')):
                 is_new = True
@@ -485,71 +485,71 @@ def get_url_from_file_reference(file_reference, **kwargs):
             kwargs['package'] = how_called[1]
             kwargs['filename'] = how_called[2]
             if is_new:
-                return url_for('redirect_to_interview_in_package', **kwargs)
-            return url_for('run_interview_in_package', **kwargs)
+                return url_for('interview.redirect_to_interview_in_package', **kwargs)
+            return url_for('interview.run_interview_in_package', **kwargs)
         if how_called[0] in ('start_dispatch', 'run_dispatch'):
             del kwargs['i']
             kwargs['dispatch'] = how_called[1]
             if is_new:
-                return url_for('redirect_to_interview', **kwargs)
-            return url_for('run_interview', **kwargs)
+                return url_for('interview.redirect_to_interview', **kwargs)
+            return url_for('interview.run_interview', **kwargs)
         if how_called[0] in ('start_directory', 'run_directory'):
             del kwargs['i']
             kwargs['package'] = how_called[1]
             kwargs['directory'] = how_called[2]
             kwargs['filename'] = how_called[3]
             if is_new:
-                return url_for('redirect_to_interview_in_package_directory', **kwargs)
-            return url_for('run_interview_in_package_directory', **kwargs)
+                return url_for('interview.redirect_to_interview_in_package_directory', **kwargs)
+            return url_for('interview.run_interview_in_package_directory', **kwargs)
         if is_new:
             kwargs['new_session'] = 1
-        return url_for('index', **kwargs)
+        return url_for('index.index', **kwargs)
     if file_reference == 'interviews':
         remove_question_package(kwargs)
-        return url_for('interview_list', **kwargs)
+        return url_for('interview.interview_list', **kwargs)
     if file_reference == 'exit':
         remove_question_package(kwargs_with_i)
-        return url_for('exit_endpoint', **kwargs_with_i)
+        return url_for('util.exit_endpoint', **kwargs_with_i)
     if file_reference == 'exit_logout':
         remove_question_package(kwargs_with_i)
-        return url_for('exit_logout', **kwargs_with_i)
+        return url_for('util.exit_logout', **kwargs_with_i)
     if file_reference == 'dispatch':
         remove_question_package(kwargs)
-        return url_for('interview_start', **kwargs)
+        return url_for('interview.interview_start', **kwargs)
     if file_reference == 'manage':
         remove_question_package(kwargs)
-        return url_for('manage_account', **kwargs)
+        return url_for('account.manage_account', **kwargs)
     if file_reference == 'interview_list':
         remove_question_package(kwargs)
-        return url_for('interview_list', **kwargs)
+        return url_for('interview.interview_list', **kwargs)
     if file_reference == 'playground':
         remove_question_package(kwargs)
-        return url_for('playground_page', **kwargs)
+        return url_for('playground.playground_page', **kwargs)
     if file_reference == 'playgroundtemplate':
         kwargs['section'] = 'template'
         remove_question_package(kwargs)
-        return url_for('playground_files', **kwargs)
+        return url_for('playground.playground_files', **kwargs)
     if file_reference == 'playgroundstatic':
         kwargs['section'] = 'static'
         remove_question_package(kwargs)
-        return url_for('playground_files', **kwargs)
+        return url_for('playground.playground_files', **kwargs)
     if file_reference == 'playgroundsources':
         kwargs['section'] = 'sources'
         remove_question_package(kwargs)
-        return url_for('playground_files', **kwargs)
+        return url_for('playground.playground_files', **kwargs)
     if file_reference == 'playgroundmodules':
         kwargs['section'] = 'modules'
         remove_question_package(kwargs)
-        return url_for('playground_files', **kwargs)
+        return url_for('playground.playground_files', **kwargs)
     if file_reference == 'playgroundpackages':
         remove_question_package(kwargs)
-        return url_for('playground_packages', **kwargs)
+        return url_for('playground.playground_packages', **kwargs)
     if file_reference == 'playgroundfiles':
         remove_question_package(kwargs)
-        return url_for('playground_files', **kwargs)
+        return url_for('playground.playground_files', **kwargs)
     if file_reference == 'create_playground_package':
         remove_question_package(kwargs)
-        return url_for('create_playground_package', **kwargs)
+        return url_for('playground.create_playground_package', **kwargs)
     if file_reference == 'configuration':
         remove_question_package(kwargs)
         return url_for('config_page', **kwargs)
@@ -558,16 +558,16 @@ def get_url_from_file_reference(file_reference, **kwargs):
         return url_for('rootindex', **kwargs)
     if file_reference == 'run':
         remove_question_package(kwargs)
-        return url_for('run_interview_in_package', **kwargs)
+        return url_for('interview.run_interview_in_package', **kwargs)
     if file_reference == 'run_dispatch':
         remove_question_package(kwargs)
-        return url_for('run_interview', **kwargs)
+        return url_for('interview.run_interview', **kwargs)
     if file_reference == 'run_new':
         remove_question_package(kwargs)
-        return url_for('redirect_to_interview_in_package', **kwargs)
+        return url_for('interview.redirect_to_interview_in_package', **kwargs)
     if file_reference == 'run_new_dispatch':
         remove_question_package(kwargs)
-        return url_for('redirect_to_interview', **kwargs)
+        return url_for('interview.redirect_to_interview', **kwargs)
     if re.search('^[0-9]+$', file_reference):
         remove_question_package(kwargs)
         file_number = file_reference

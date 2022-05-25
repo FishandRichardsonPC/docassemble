@@ -921,8 +921,8 @@ def temp_redirect(url, expire_seconds, do_local, one_time):
     pipe.expire(the_key, expire_seconds)
     pipe.execute()
     if do_local:
-        return server.url_for('run_temp', c=code)
-    return server.url_for('run_temp', c=code, _external=True)
+        return server.url_for('util.run_temp', c=code)
+    return server.url_for('util.run_temp', c=code, _external=True)
 
 def set_parts(**kwargs):
     """Sets parts of the page, such as words in the navigation bar and

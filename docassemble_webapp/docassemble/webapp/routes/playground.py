@@ -57,7 +57,7 @@ from docassemble.webapp.user_util import api_verify
 from docassemble.webapp.util import RedisCredStorage, ensure_ml_file_exists, get_current_project, \
     get_vars_in_use, indent_by, jsonify_restart_task, jsonify_with_status, name_of_user, restart_all, safeid, \
     secure_filename, secure_filename_spaces_ok, should_run_create, splitall, true_or_false, variables_js
-from flask import Blueprint
+from flask import Blueprint, current_app
 from docassemble.webapp.config_server import fix_tabs
 
 if not in_celery:
@@ -369,8 +369,8 @@ def cloud_trash(use_gd, use_od, section, the_file, current_project):
 
 
 def fix_package_folder():
-    use_gd = bool(app.config['USE_GOOGLE_DRIVE'] is True and get_gd_folder() is not None)
-    use_od = bool(use_gd is False and app.config['USE_ONEDRIVE'] is True and get_od_folder() is not None)
+    use_gd = bool(current_app.config['USE_GOOGLE_DRIVE'] is True and get_gd_folder() is not None)
+    use_od = bool(use_gd is False and current_app.config['USE_ONEDRIVE'] is True and get_od_folder() is not None)
     problem_exists = False
     area = SavedFile(current_user.id, fix=True, section='playgroundpackages')
     for f in os.listdir(area.directory):
@@ -466,12 +466,12 @@ def get_orgs_info(http):
     return orgs_info
 
 
-@app.route('/createplaygroundpackage', methods=['GET', 'POST'])
+@playground.route('/createplaygroundpackage', methods=['GET', 'POST'])
 @login_required
 @roles_required(['admin', 'developer'])
 def create_playground_package():
     setup_translation()
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     fix_package_folder()
     current_project = get_current_project()
@@ -495,7 +495,7 @@ def create_playground_package():
         branch_is_new = False
     force_branch_creation = False
     sanitize_arguments(do_pypi, do_github, do_install, branch, new_branch)
-    if app.config['USE_GITHUB']:
+    if current_app.config['USE_GITHUB']:
         github_auth = r.get('da:using_github:userid:' + str(current_user.id))
     else:
         github_auth = None
@@ -512,7 +512,7 @@ def create_playground_package():
     else:
         info = {}
     if do_github:
-        if not app.config['USE_GITHUB']:
+        if not current_app.config['USE_GITHUB']:
             return ('File not found', 404)
         if current_package is None:
             logmessage('create_playground_package: package not specified')
@@ -660,7 +660,7 @@ def create_playground_package():
             if do_pypi:
                 if current_user.pypi_username is None or current_user.pypi_password is None or current_user.pypi_username == '' or current_user.pypi_password == '':
                     flash("Could not publish to PyPI because username and password were not defined")
-                    return redirect(url_for('playground_packages', project=current_project, file=current_package))
+                    return redirect(url_for('playground.playground_packages', project=current_project, file=current_package))
                 if current_user.timezone:
                     the_timezone = current_user.timezone
                 else:
@@ -671,7 +671,7 @@ def create_playground_package():
                 flash(logmessages, 'danger' if had_error else 'info')
                 if not do_install:
                     time.sleep(3.0)
-                    return redirect(url_for('playground_packages', project=current_project, file=current_package))
+                    return redirect(url_for('playground.playground_packages', project=current_project, file=current_package))
             if do_github:
                 if commit_repository is not None:
                     resp, content = http.request(
@@ -963,7 +963,7 @@ def create_playground_package():
                         the_args['install_also'] = '1'
                 if branch:
                     the_args['branch'] = branch
-                return redirect(url_for('playground_packages', **the_args))
+                return redirect(url_for('playground.playground_packages', **the_args))
             nice_name = 'docassemble-' + str(pkgname) + '.zip'
             file_number = get_new_file_number(None, nice_name)
             file_set_attributes(file_number, private=False, persistent=True)
@@ -984,8 +984,8 @@ def create_playground_package():
                         run_create=should_run_create('docassemble.' + pkgname)))
                 session['taskwait'] = result.id
                 session['serverstarttime'] = START_TIME
-                return redirect(url_for('update_package_wait',
-                                        next=url_for('playground_packages', project=current_project,
+                return redirect(url_for('admin.update_package_wait',
+                                        next=url_for('playground.playground_packages', project=current_project,
                                                      file=current_package)))
             else:
                 response = send_file(saved_file.path, mimetype='application/zip', as_attachment=True,
@@ -1003,12 +1003,12 @@ def create_playground_package():
     return response
 
 
-@app.route('/playground_poll', methods=['GET'])
+@playground.route('/playground_poll', methods=['GET'])
 @login_required
 @roles_required(['admin', 'developer'])
 def playground_poll():
     setup_translation()
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     script = """
     <script>
@@ -1020,7 +1020,7 @@ def playground_poll():
       function daPoll(){
         $.ajax({
           type: 'GET',
-          url: """ + json.dumps(url_for('playground_redirect_poll')) + """,
+          url: """ + json.dumps(url_for('playground.playground_redirect_poll')) + """,
           success: daPollCallback,
           dataType: 'json'
         });
@@ -1038,9 +1038,9 @@ def playground_poll():
     return response
 
 
-@app.route('/playgroundstatic/<current_project>/<userid>/<path:filename>', methods=['GET'])
+@playground.route('/playgroundstatic/<current_project>/<userid>/<path:filename>', methods=['GET'])
 def playground_static(current_project, userid, filename):
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     # filename = re.sub(r'[^A-Za-z0-9\-\_\. ]', '', filename)
     try:
@@ -1063,11 +1063,11 @@ def playground_static(current_project, userid, filename):
     return ('File not found', 404)
 
 
-@app.route('/playgroundmodules/<current_project>/<userid>/<path:filename>', methods=['GET'])
+@playground.route('/playgroundmodules/<current_project>/<userid>/<path:filename>', methods=['GET'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_modules(current_project, userid, filename):
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     setup_translation()
     # filename = re.sub(r'[^A-Za-z0-9\-\_\. ]', '', filename)
@@ -1092,11 +1092,11 @@ def playground_modules(current_project, userid, filename):
     return ('File not found', 404)
 
 
-@app.route('/playgroundsources/<current_project>/<userid>/<path:filename>', methods=['GET'])
+@playground.route('/playgroundsources/<current_project>/<userid>/<path:filename>', methods=['GET'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_sources(current_project, userid, filename):
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     setup_translation()
     try:
@@ -1122,11 +1122,11 @@ def playground_sources(current_project, userid, filename):
     return ('File not found', 404)
 
 
-@app.route('/playgroundtemplate/<current_project>/<userid>/<path:filename>', methods=['GET'])
+@playground.route('/playgroundtemplate/<current_project>/<userid>/<path:filename>', methods=['GET'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_template(current_project, userid, filename):
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     # filename = re.sub(r'[^A-Za-z0-9\-\_\. ]', '', filename)
     setup_translation()
@@ -1151,11 +1151,11 @@ def playground_template(current_project, userid, filename):
     return ('File not found', 404)
 
 
-@app.route('/playgrounddownload/<current_project>/<userid>/<path:filename>', methods=['GET'])
+@playground.route('/playgrounddownload/<current_project>/<userid>/<path:filename>', methods=['GET'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_download(current_project, userid, filename):
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     setup_translation()
     # filename = re.sub(r'[^A-Za-z0-9\-\_\. ]', '', filename)
@@ -1576,16 +1576,16 @@ function update_search(event){
 """
 
 
-@app.route('/playgroundfiles', methods=['GET', 'POST'])
+@playground.route('/playgroundfiles', methods=['GET', 'POST'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_files():
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     setup_translation()
     current_project = get_current_project()
-    use_gd = bool(app.config['USE_GOOGLE_DRIVE'] is True and get_gd_folder() is not None)
-    use_od = bool(use_gd is False and app.config['USE_ONEDRIVE'] is True and get_od_folder() is not None)
+    use_gd = bool(current_app.config['USE_GOOGLE_DRIVE'] is True and get_gd_folder() is not None)
+    use_od = bool(use_gd is False and current_app.config['USE_ONEDRIVE'] is True and get_od_folder() is not None)
     form = PlaygroundFilesForm(request.form)
     formtwo = PlaygroundFilesEditForm(request.form)
     is_ajax = bool('ajax' in request.form and int(request.form['ajax']))
@@ -1658,7 +1658,7 @@ def playground_files():
                 for key in r.keys('da:interviewsource:docassemble.playground' + str(current_user.id) + project_name(
                         current_project) + ':*'):
                     r.incr(key.decode())
-                return redirect(url_for('playground_files', section=section, project=current_project))
+                return redirect(url_for('playground.playground_files', section=section, project=current_project))
             else:
                 flash(word("File not found: ") + argument, "error")
     if request.args.get('convert', False):
@@ -1677,15 +1677,15 @@ def playground_files():
                         the_format = convertible_extensions[extension]
                     else:
                         flash(word("File format not understood: ") + argument, "error")
-                        return redirect(url_for('playground_files', section=section, project=current_project))
+                        return redirect(url_for('playground.playground_files', section=section, project=current_project))
                     result = word_to_markdown(filename, the_format)
                     if result is None:
                         flash(word("File could not be converted: ") + argument, "error")
-                        return redirect(url_for('playground_files', section=section, project=current_project))
+                        return redirect(url_for('playground.playground_files', section=section, project=current_project))
                     shutil.copyfile(result.name, to_path)
                     flash(word("Created new Markdown file called ") + to_file + word("."), "success")
                     area.finalize()
-                    return redirect(url_for('playground_files', section=section, file=to_file, project=current_project))
+                    return redirect(url_for('playground.playground_files', section=section, file=to_file, project=current_project))
             else:
                 flash(word("File not found: ") + argument, "error")
     if request.method == 'POST' and form_validated:
@@ -1701,7 +1701,7 @@ def playground_files():
                             flash(word(
                                 "Sorry, only .py files can be uploaded here.  To upload other types of files, use other Folders."),
                                 'error')
-                            return redirect(url_for('playground_files', section=section, project=current_project))
+                            return redirect(url_for('playground.playground_files', section=section, project=current_project))
                         filename = re.sub(r'[^A-Za-z0-9\-\_\. ]+', '_', filename)
                         the_file = filename
                         filename = os.path.join(the_directory, filename)
@@ -1719,8 +1719,8 @@ def playground_files():
                     flash(word(
                         'Since you uploaded a Python module, the server needs to restart in order to load your module.'),
                         'info')
-                    return redirect(url_for('restart_page',
-                                            next=url_for('playground_files', section=section, file=the_file,
+                    return redirect(url_for('util.restart_page',
+                                            next=url_for('playground.playground_files', section=section, file=the_file,
                                                          project=current_project)))
                 flash(word("Upload successful"), "success")
         if formtwo.delete.data:
@@ -1733,7 +1733,7 @@ def playground_files():
                         r.incr(key.decode())
                     area.finalize()
                     flash(word("Deleted file: ") + the_file, "success")
-                    return redirect(url_for('playground_files', section=section, project=current_project))
+                    return redirect(url_for('playground.playground_files', section=section, project=current_project))
                 else:
                     flash(word("File not found: ") + the_file, "error")
         if formtwo.submit.data and formtwo.file_content.data:
@@ -1762,14 +1762,14 @@ def playground_files():
                     flash(word(
                         'Since you changed a Python module, the server needs to restart in order to load your module.'),
                         'info')
-                    return redirect(url_for('restart_page',
-                                            next=url_for('playground_files', section=section, file=the_file,
+                    return redirect(url_for('util.restart_page',
+                                            next=url_for('playground.playground_files', section=section, file=the_file,
                                                          project=current_project)))
                 if is_ajax:
                     return jsonify(success=True, flash_message=flash_message)
                 else:
                     return redirect(
-                        url_for('playground_files', section=section, file=the_file, project=current_project))
+                        url_for('playground.playground_files', section=section, file=the_file, project=current_project))
             else:
                 flash(word('You need to type in a name for the file'), 'error')
     if is_ajax and not form_validated:
@@ -2115,7 +2115,7 @@ def playground_files():
             }
             $.ajax({
               type: "POST",
-              url: """ + '"' + url_for('playground_files', project=current_project) + '"' + """,
+              url: """ + '"' + url_for('playground.playground_files', project=current_project) + '"' + """,
               data: $("#formtwo").serialize() + extraVariable + '&submit=Save&ajax=1',
               success: function(data){
                 if (data.action && data.action == 'reload'){
@@ -2158,7 +2158,7 @@ def playground_files():
         kbOpt = ''
         kbLoad = ''
     any_files = bool(len(editable_files) > 0)
-    back_button = Markup('<span class="navbar-brand navbar-nav dabackicon me-3"><a href="' + url_for('playground_page',
+    back_button = Markup('<span class="navbar-brand navbar-nav dabackicon me-3"><a href="' + url_for('playground.playground_page',
                                                                                                      project=current_project) + '" class="dabackbuttoncolor nav-link" title=' + json.dumps(
         word(
             "Go back to the main Playground page")) + '><i class="fas fa-chevron-left"></i><span class="daback">' + word(
@@ -2402,12 +2402,12 @@ def do_playground_pull(area, current_project, github_url=None, branch=None, pypi
     return dict(action='finished', need_to_restart=need_to_restart, package_name=package_name)
 
 
-@app.route('/pullplaygroundpackage', methods=['GET', 'POST'])
+@playground.route('/pullplaygroundpackage', methods=['GET', 'POST'])
 @login_required
 @roles_required(['developer', 'admin'])
 def pull_playground_package():
     setup_translation()
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     current_project = get_current_project()
     form = PullPlaygroundPackage(request.form)
@@ -2418,13 +2418,13 @@ def pull_playground_package():
                     "You cannot pull from GitHub and PyPI at the same time.  Please fill in one and leave the other blank."),
                     'error')
             elif form.github_url.data:
-                return redirect(url_for('playground_packages', project=current_project, pull='1',
+                return redirect(url_for('playground.playground_packages', project=current_project, pull='1',
                                         github_url=re.sub(r'/*$', '', str(form.github_url.data).strip()),
                                         branch=form.github_branch.data))
             elif form.pypi.data:
-                return redirect(url_for('playground_packages', project=current_project, pull='1', pypi=form.pypi.data))
+                return redirect(url_for('playground.playground_packages', project=current_project, pull='1', pypi=form.pypi.data))
         if form.cancel.data:
-            return redirect(url_for('playground_packages', project=current_project))
+            return redirect(url_for('playground.playground_packages', project=current_project))
     elif 'github' in request.args:
         form.github_url.data = re.sub(r'[^A-Za-z0-9\-\.\_\~\:\/\?\#\[\]\@\!\$\&\'\(\)\*\+\,\;\=\`]', '',
                                       request.args['github'])
@@ -2447,7 +2447,7 @@ def pull_playground_package():
         if (!github_url){
           return;
         }
-        $.get(""" + json.dumps(url_for('get_git_branches')) + """, { url: github_url }, "json")
+        $.get(""" + json.dumps(url_for('admin.get_git_branches')) + """, { url: github_url }, "json")
         .done(function(data){
           //console.log(data);
           if (data.success){
@@ -2571,11 +2571,11 @@ def github_as_http(url):
     return re.sub('^[^@]+@([^:]+):(.*)\.git$', r'https://\1/\2', url)
 
 
-@app.route('/playgroundpackages', methods=['GET', 'POST'])
+@playground.route('/playgroundpackages', methods=['GET', 'POST'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_packages():
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     setup_translation()
     fix_package_folder()
@@ -2591,7 +2591,7 @@ def playground_packages():
     pypi_url = daconfig.get('pypi url', 'https://pypi.python.org/pypi')
     can_publish_to_pypi = bool(
         allow_pypi is True and pypi_username is not None and pypi_password is not None and pypi_username != '' and pypi_password != '')
-    if app.config['USE_GITHUB']:
+    if current_app.config['USE_GITHUB']:
         github_auth = r.get('da:using_github:userid:' + str(current_user.id))
         if github_auth is not None:
             github_auth = github_auth.decode()
@@ -2896,7 +2896,7 @@ def playground_packages():
                             root_dir = directory
                     if root_dir is None:
                         flash(word("The zip file did not contain a docassemble add-on package."), 'error')
-                        return redirect(url_for('playground_packages', project=current_project, file=the_file))
+                        return redirect(url_for('playground.playground_packages', project=current_project, file=the_file))
                     for zinfo in zf.infolist():
                         # logmessage("Found a " + zinfo.filename)
                         if zinfo.filename.endswith('/'):
@@ -2983,8 +2983,8 @@ def playground_packages():
             flash(word("The package was unpacked into the Playground."), 'success')
         if need_to_restart:
             return redirect(
-                url_for('restart_page', next=url_for('playground_packages', project=current_project, file=the_file)))
-        return redirect(url_for('playground_packages', project=current_project, file=the_file))
+                url_for('util.restart_page', next=url_for('playground.playground_packages', project=current_project, file=the_file)))
+        return redirect(url_for('playground.playground_packages', project=current_project, file=the_file))
     if request.method == 'GET' and 'pull' in request.args and int(request.args['pull']) == 1 and (
             'github_url' in request.args or 'pypi' in request.args):
         if can_publish_to_github and (github_user_name is None or github_email is None):
@@ -3001,7 +3001,7 @@ def playground_packages():
             raise DAError("playground_packages: " + result['message'])
         if result['action'] == 'fail':
             flash(result['message'], 'error')
-            return redirect(url_for('playground_packages', project=current_project))
+            return redirect(url_for('playground.playground_packages', project=current_project))
         if result['action'] == 'pull_only':
             the_args = dict(package=the_file, project=current_project)
             if do_pypi_also:
@@ -3009,16 +3009,16 @@ def playground_packages():
             if do_install_also:
                 the_args['install'] = '1'
             area['playgroundpackages'].finalize()
-            return redirect(url_for('create_playground_package', **the_args))
+            return redirect(url_for('playground.create_playground_package', **the_args))
         if result['action'] == 'finished':
             the_file = result['package_name']
             if show_message:
                 flash(word("The package was unpacked into the Playground."), 'success')
             # shutil.rmtree(directory)
             if result['need_to_restart']:
-                return redirect(url_for('restart_page',
-                                        next=url_for('playground_packages', file=the_file, project=current_project)))
-            return redirect(url_for('playground_packages', project=current_project, file=the_file))
+                return redirect(url_for('util.restart_page',
+                                        next=url_for('playground.playground_packages', file=the_file, project=current_project)))
+            return redirect(url_for('playground.playground_packages', project=current_project, file=the_file))
     if request.method == 'POST' and validated and form.delete.data and the_file != '' and the_file == form.file_name.data and os.path.isfile(
             os.path.join(directory_for(area['playgroundpackages'], current_project), 'docassemble.' + the_file)):
         os.remove(os.path.join(directory_for(area['playgroundpackages'], current_project), 'docassemble.' + the_file))
@@ -3027,7 +3027,7 @@ def playground_packages():
             os.remove(dotfile)
         area['playgroundpackages'].finalize()
         flash(word("Deleted package"), "success")
-        return redirect(url_for('playground_packages', project=current_project))
+        return redirect(url_for('playground.playground_packages', project=current_project))
     if not is_new:
         pkgname = 'docassemble.' + the_file
         pypi_info = pypi_status(pkgname)
@@ -3085,30 +3085,30 @@ def playground_packages():
                     fp.write(str(the_yaml))
                 area['playgroundpackages'].finalize()
                 if form.download.data:
-                    return redirect(url_for('create_playground_package', package=the_file, project=current_project))
+                    return redirect(url_for('playground.create_playground_package', package=the_file, project=current_project))
                 if form.install.data:
                     return redirect(
-                        url_for('create_playground_package', package=the_file, project=current_project, install='1'))
+                        url_for('playground.create_playground_package', package=the_file, project=current_project, install='1'))
                 if form.pypi.data:
                     if form.install_also.data:
                         return redirect(
-                            url_for('create_playground_package', package=the_file, project=current_project, pypi='1',
+                            url_for('playground.create_playground_package', package=the_file, project=current_project, pypi='1',
                                     install='1'))
                     else:
                         return redirect(
-                            url_for('create_playground_package', package=the_file, project=current_project, pypi='1'))
+                            url_for('playground.create_playground_package', package=the_file, project=current_project, pypi='1'))
                 if form.github.data:
                     the_branch = form.github_branch.data
                     if the_branch == "<new>":
                         the_branch = re.sub(r'[^A-Za-z0-9\_\-]', r'', str(form.github_branch_new.data))
                         return redirect(
-                            url_for('create_playground_package', project=current_project, package=the_file, github='1',
+                            url_for('playground.create_playground_package', project=current_project, package=the_file, github='1',
                                     commit_message=form.commit_message.data, new_branch=str(the_branch),
                                     pypi_also=('1' if form.pypi_also.data else '0'),
                                     install_also=('1' if form.install_also.data else '0')))
                     else:
                         return redirect(
-                            url_for('create_playground_package', project=current_project, package=the_file, github='1',
+                            url_for('playground.create_playground_package', project=current_project, package=the_file, github='1',
                                     commit_message=form.commit_message.data, branch=str(the_branch),
                                     pypi_also=('1' if form.pypi_also.data else '0'),
                                     install_also=('1' if form.install_also.data else '0')))
@@ -3250,7 +3250,7 @@ def playground_packages():
         kbOpt = ''
         kbLoad = ''
     any_files = len(editable_files) > 0
-    back_button = Markup('<span class="navbar-brand navbar-nav dabackicon me-3"><a href="' + url_for('playground_page',
+    back_button = Markup('<span class="navbar-brand navbar-nav dabackicon me-3"><a href="' + url_for('playground.playground_page',
                                                                                                      project=current_project) + '" class="dabackbuttoncolor nav-link" title=' + json.dumps(
         word(
             "Go back to the main Playground page")) + '><i class="fas fa-chevron-left"></i><span class="daback">' + word(
@@ -3408,11 +3408,11 @@ def playground_packages():
     return response
 
 
-@app.route('/playground_redirect_poll', methods=['GET'])
+@playground.route('/playground_redirect_poll', methods=['GET'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_redirect_poll():
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     key = 'da:runplayground:' + str(current_user.id)
     the_url = r.get(key)
@@ -3424,11 +3424,11 @@ def playground_redirect_poll():
     return jsonify(dict(success=False, url=the_url))
 
 
-@app.route('/playground_redirect', methods=['GET', 'POST'])
+@playground.route('/playground_redirect', methods=['GET', 'POST'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_redirect():
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     key = 'da:runplayground:' + str(current_user.id)
     counter = 0
@@ -3453,12 +3453,12 @@ def set_variable_file(current_project, variable_file):
     return variable_file
 
 
-@app.route('/playgroundvariables', methods=['POST'])
+@playground.route('/playgroundvariables', methods=['POST'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_variables():
     current_project = get_current_project()
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     setup_translation()
     playground = SavedFile(current_user.id, fix=True, section='playground')
@@ -3504,11 +3504,11 @@ def playground_variables():
     return jsonify(success=False, reason=2)
 
 
-@app.route('/playground_run', methods=['GET', 'POST'])
+@playground.route('/playground_run', methods=['GET', 'POST'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_page_run():
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     setup_translation()
     current_project = get_current_project()
@@ -3516,24 +3516,24 @@ def playground_page_run():
     if the_file:
         active_interview_string = 'docassemble.playground' + str(current_user.id) + project_name(
             current_project) + ':' + the_file
-        the_url = url_for('index', reset=1, i=active_interview_string)
+        the_url = url_for('index.index', reset=1, i=active_interview_string)
         key = 'da:runplayground:' + str(current_user.id)
         # logmessage("Setting key " + str(key) + " to " + str(the_url))
         pipe = r.pipeline()
         pipe.set(key, the_url)
         pipe.expire(key, 25)
         pipe.execute()
-        return redirect(url_for('playground_page', file=the_file, project=current_project))
-    return redirect(url_for('playground_page', project=current_project))
+        return redirect(url_for('playground.playground_page', file=the_file, project=current_project))
+    return redirect(url_for('playground.playground_page', project=current_project))
 
 
-@app.route('/playgroundproject', methods=['GET', 'POST'])
+@playground.route('/playgroundproject', methods=['GET', 'POST'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_project():
     setup_translation()
-    use_gd = bool(app.config['USE_GOOGLE_DRIVE'] is True and get_gd_folder() is not None)
-    use_od = bool(use_gd is False and app.config['USE_ONEDRIVE'] is True and get_od_folder() is not None)
+    use_gd = bool(current_app.config['USE_GOOGLE_DRIVE'] is True and get_gd_folder() is not None)
+    use_od = bool(use_gd is False and current_app.config['USE_ONEDRIVE'] is True and get_od_folder() is not None)
     current_project = get_current_project()
     if request.args.get('rename'):
         form = RenameProject(request.form)
@@ -3561,7 +3561,7 @@ def playground_project():
                 current_project = set_current_project(form.name.data)
                 flash(word('Since you renamed a project, the server needs to restart in order to reload any modules.'),
                       'info')
-                return redirect(url_for('restart_page', next=url_for('playground_project', project=current_project)))
+                return redirect(url_for('util.restart_page', next=url_for('playground.playground_project', project=current_project)))
     elif request.args.get('new'):
         form = NewProject(request.form)
         mode = 'new'
@@ -3574,7 +3574,7 @@ def playground_project():
                 create_project(current_user.id, form.name.data)
                 current_project = set_current_project(form.name.data)
                 mode = 'standard'
-                return redirect(url_for('playground_page', project=current_project))
+                return redirect(url_for('playground.playground_page', project=current_project))
     elif request.args.get('delete'):
         form = DeleteProject(request.form)
         mode = 'delete'
@@ -3602,14 +3602,14 @@ def playground_project():
                 delete_project(current_user.id, current_project)
                 flash(word("The project %s was deleted.") % (current_project,), "success")
                 current_project = set_current_project('default')
-                return redirect(url_for('playground_project', project=current_project))
+                return redirect(url_for('playground.playground_project', project=current_project))
     else:
         form = None
         mode = 'standard'
         page_title = word("Projects")
         description = word(
             "You can divide up your Playground into multiple separate areas, apart from your default Playground area.  Each Project has its own question files and Folders.")
-    back_button = Markup('<span class="navbar-brand navbar-nav dabackicon me-3"><a href="' + url_for('playground_page',
+    back_button = Markup('<span class="navbar-brand navbar-nav dabackicon me-3"><a href="' + url_for('playground.playground_page',
                                                                                                      project=current_project) + '" class="dabackbuttoncolor nav-link" title=' + json.dumps(
         word(
             "Go back to the main Playground page")) + '><i class="fas fa-chevron-left"></i><span class="daback">' + word(
@@ -3635,12 +3635,12 @@ def proc_example_list(example_list, package, directory, examples):
             continue
         result = {}
         result['id'] = example
-        result['interview'] = url_for('index', reset=1, i=package + ":data/questions/" + directory + example + ".yml")
+        result['interview'] = url_for('index.index', reset=1, i=package + ":data/questions/" + directory + example + ".yml")
         example_file = package + ":data/questions/" + directory + example + '.yml'
         if package == 'docassemble.base':
             result['image'] = url_for('static', filename=directory + example + ".png", v=da_version)
         else:
-            result['image'] = url_for('package_static', package=package, filename=example + ".png")
+            result['image'] = url_for('files.package_static', package=package, filename=example + ".png")
         file_info = get_info_from_file_reference(example_file)
         start_block = 1
         end_block = 2
@@ -3772,11 +3772,11 @@ def define_examples():
 pg_ex = {}
 
 
-@app.route('/playground', methods=['GET', 'POST'])
+@playground.route('/playground', methods=['GET', 'POST'])
 @login_required
 @roles_required(['developer', 'admin'])
 def playground_page():
-    if not app.config['ENABLE_PLAYGROUND']:
+    if not current_app.config['ENABLE_PLAYGROUND']:
         return ('File not found', 404)
     setup_translation()
     current_project = get_current_project()
@@ -3786,10 +3786,10 @@ def playground_page():
         use_od = False
     else:
         is_ajax = False
-        use_gd = bool(app.config['USE_GOOGLE_DRIVE'] is True and get_gd_folder() is not None)
-        use_od = bool(use_gd is False and app.config['USE_ONEDRIVE'] is True and get_od_folder() is not None)
+        use_gd = bool(current_app.config['USE_GOOGLE_DRIVE'] is True and get_gd_folder() is not None)
+        use_od = bool(use_gd is False and current_app.config['USE_ONEDRIVE'] is True and get_od_folder() is not None)
         if request.method == 'GET' and needs_to_change_password():
-            return redirect(url_for('user.change_password', next=url_for('playground_page', project=current_project)))
+            return redirect(url_for('user.change_password', next=url_for('playground.playground_page', project=current_project)))
     fileform = PlaygroundUploadForm(request.form)
     form = PlaygroundForm(request.form)
     interview = None
@@ -3821,7 +3821,7 @@ def playground_page():
                         flash(word(
                             "Sorry, only YAML files can be uploaded here.  To upload other types of files, use the Folders."),
                             'error')
-                        return redirect(url_for('playground_page', project=current_project))
+                        return redirect(url_for('playground.playground_page', project=current_project))
                     filename = re.sub(r'[^A-Za-z0-9\-\_\. ]+', '_', filename)
                     new_file = filename
                     filename = os.path.join(the_directory, filename)
@@ -3834,15 +3834,15 @@ def playground_page():
                         flash(word(
                             "There was a problem reading the YAML file you uploaded.  Are you sure it is a YAML file?  File was not saved."),
                             'error')
-                        return redirect(url_for('playground_page', project=current_project))
+                        return redirect(url_for('playground.playground_page', project=current_project))
                     playground.finalize()
                     r.incr('da:interviewsource:docassemble.playground' + str(current_user.id) + project_name(
                         current_project) + ':' + new_file)
                     return redirect(
-                        url_for('playground_page', project=current_project, file=os.path.basename(filename)))
+                        url_for('playground.playground_page', project=current_project, file=os.path.basename(filename)))
                 except Exception as errMess:
                     flash("Error of type " + str(type(errMess)) + " processing upload: " + str(errMess), "error")
-        return redirect(url_for('playground_page', project=current_project))
+        return redirect(url_for('playground.playground_page', project=current_project))
     if request.method == 'POST' and (form.submit.data or form.run.data or form.delete.data):
         if valid_form and form.playground_name.data:
             the_file = secure_filename_spaces_ok(form.playground_name.data)
@@ -3874,7 +3874,7 @@ def playground_page():
     if the_file and not is_new and the_file not in file_listing:
         if request.method == 'GET':
             delete_current_file(current_project, 'questions')
-            return redirect(url_for('playground_page', project=current_project))
+            return redirect(url_for('playground.playground_page', project=current_project))
         the_file = ''
     is_default = False
     if request.method == 'GET' and not the_file and not is_new:
@@ -3927,7 +3927,7 @@ def playground_page():
                 if current_variable_file == the_file or current_variable_file == form.playground_name.data:
                     delete_variable_file(current_project)
                 delete_current_file(current_project, 'questions')
-                return redirect(url_for('playground_page', project=current_project))
+                return redirect(url_for('playground.playground_page', project=current_project))
             else:
                 flash(word('File not deleted.  There was an error.'), 'error')
         if (form.submit.data or form.run.data):
@@ -3971,7 +3971,7 @@ def playground_page():
             if active_interview_string != this_interview_string:
                 docassemble.base.interview_cache.clear_cache(active_interview_string)
             if not form.submit.data:
-                the_url = url_for('index', reset=1, i=this_interview_string)
+                the_url = url_for('index.index', reset=1, i=this_interview_string)
                 key = 'da:runplayground:' + str(current_user.id)
                 # logmessage("Setting key " + str(key) + " to " + str(the_url))
                 pipe = r.pipeline()
@@ -4011,7 +4011,7 @@ def playground_page():
                 return jsonify(variables_html=variables_html, vocab_list=vocab_list, flash_message=flash_message,
                                current_project=current_project, console_messages=console_messages,
                                active_file=active_file,
-                               active_interview_url=url_for('index', i=active_interview_string))
+                               active_interview_url=url_for('index.index', i=active_interview_string))
         else:
             flash(word('Playground not saved.  There was an error.'), 'error')
     interview_path = None
@@ -4332,7 +4332,7 @@ function daFetchVariableReportCallback(data){
 }
 
 function daFetchVariableReport(){
-  url = """ + json.dumps(url_for('variables_report', project=current_project)) + """ + "&file=" + currentFile;
+  url = """ + json.dumps(url_for('admin.variables_report', project=current_project)) + """ + "&file=" + currentFile;
   $("#daVariablesReport .modal-body").html('<p>""" + word("Loading . . .") + """</p>');
   $.ajax({
     type: "GET",
@@ -4363,7 +4363,7 @@ function saveCallback(data){
   if (data.current_project != null){
     currentProject = data.current_project;
   }
-  history.replaceState({}, "", """ + json.dumps(url_for('playground_page')) + """ + encodeURI('?project=' + currentProject + '&file=' + currentFile));
+  history.replaceState({}, "", """ + json.dumps(url_for('playground.playground_page')) + """ + encodeURI('?project=' + currentProject + '&file=' + currentFile));
   $("#daVariables").val(data.active_file);
   $("#share-link").attr('href', data.active_interview_url);
   if (data.variables_html != null){
@@ -4423,7 +4423,7 @@ $( document ).ready(function() {
     disableButtonsUntilCallback();
     $.ajax({
       type: "POST",
-      url: """ + '"' + url_for('playground_page', project=current_project) + '"' + """,
+      url: """ + '"' + url_for('playground.playground_page', project=current_project) + '"' + """,
       data: $("#form").serialize() + '&run=Save+and+Run&ajax=1',
       success: function(data){
         if (data.action && data.action == 'reload'){
@@ -4452,8 +4452,8 @@ $( document ).ready(function() {
       event.preventDefault();
       return false;
     }
-    thisWindow.location.replace('""" + url_for('sync_with_google_drive', project=current_project,
-                                               auto_next=url_for('playground_page_run', file=the_file,
+    thisWindow.location.replace('""" + url_for('google_drive.sync_with_google_drive', project=current_project,
+                                               auto_next=url_for('playground.playground_page_run', file=the_file,
                                                                  project=current_project)) + """');
     return true;
   });
@@ -4470,8 +4470,8 @@ $( document ).ready(function() {
       event.preventDefault();
       return false;
     }
-    thisWindow.location.replace('""" + url_for('sync_with_onedrive', project=current_project,
-                                               auto_next=url_for('playground_page_run', file=the_file,
+    thisWindow.location.replace('""" + url_for('one_drive.sync_with_onedrive', project=current_project,
+                                               auto_next=url_for('playground.playground_page_run', file=the_file,
                                                                  project=current_project)) + """');
   });
   $("#form button[name='submit']").click(function(event){
@@ -4482,7 +4482,7 @@ $( document ).ready(function() {
     disableButtonsUntilCallback();
     $.ajax({
       type: "POST",
-      url: """ + '"' + url_for('playground_page', project=current_project) + '"' + """,
+      url: """ + '"' + url_for('playground.playground_page', project=current_project) + '"' + """,
       data: $("#form").serialize() + '&submit=Save&ajax=1',
       success: function(data){
         if (data.action && data.action == 'reload'){
@@ -4584,7 +4584,7 @@ $( document ).ready(function() {
   origPosition = daCodeMirror.getCursor();
   daShowConsoleMessages();
   if (currentFile != ''){
-    history.replaceState({}, "", """ + json.dumps(url_for('playground_page')) + """ + encodeURI('?project=' + currentProject + '&file=' + currentFile));
+    history.replaceState({}, "", """ + json.dumps(url_for('playground.playground_page')) + """ + encodeURI('?project=' + currentProject + '&file=' + currentFile));
   }
 });
 """
@@ -4652,7 +4652,7 @@ $( document ).ready(function() {
     return response
 
 
-@app.route('/playgroundbundle.css', methods=['GET'])
+@playground.route('/playgroundbundle.css', methods=['GET'])
 def playground_css_bundle():
     base_path = pkg_resources.resource_filename(pkg_resources.Requirement.parse('docassemble.webapp'),
                                                 os.path.join('docassemble', 'webapp', 'static'))
@@ -4668,7 +4668,7 @@ def playground_css_bundle():
     return Response(output, mimetype='text/css')
 
 
-@app.route('/playgroundbundle.js', methods=['GET'])
+@playground.route('/playgroundbundle.js', methods=['GET'])
 def playground_js_bundle():
     base_path = pkg_resources.resource_filename(pkg_resources.Requirement.parse('docassemble.webapp'),
                                                 os.path.join('docassemble', 'webapp', 'static'))
@@ -4690,7 +4690,7 @@ def playground_js_bundle():
     return Response(output, mimetype='application/javascript')
 
 
-@app.route('/api/playground_pull', methods=['GET', 'POST'])
+@playground.route('/api/playground_pull', methods=['GET', 'POST'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['POST', 'HEAD'], automatic_options=True)
 def api_playground_pull():
@@ -4713,7 +4713,7 @@ def api_playground_pull():
     if current_project != 'default' and current_project not in get_list_of_projects(user_id):
         return jsonify_with_status("Invalid project.", 400)
     docassemble.base.functions.this_thread.current_info['user'] = dict(is_anonymous=False, theid=user_id)
-    if app.config['USE_GITHUB']:
+    if current_app.config['USE_GITHUB']:
         github_auth = r.get('da:using_github:userid:' + str(current_user.id))
         can_publish_to_github = bool(github_auth is not None)
     else:
@@ -4929,7 +4929,7 @@ def api_playground_install():
     return ('', 204)
 
 
-@app.route('/api/playground/project', methods=['GET', 'POST', 'DELETE'])
+@playground.route('/api/playground/project', methods=['GET', 'POST', 'DELETE'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['GET', 'POST', 'DELETE', 'HEAD'], automatic_options=True)
 def api_playground_projects():
@@ -4979,7 +4979,7 @@ def api_playground_projects():
         return ('', 204)
 
 
-@app.route('/api/playground', methods=['GET', 'POST', 'DELETE'])
+@playground.route('/api/playground', methods=['GET', 'POST', 'DELETE'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['GET', 'POST', 'DELETE', 'HEAD'], automatic_options=True)
 def api_playground():

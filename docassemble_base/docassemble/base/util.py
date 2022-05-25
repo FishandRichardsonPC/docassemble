@@ -7392,7 +7392,6 @@ def send_sms(to=None, body=None, template=None, task=None, task_persistent=False
         if success:
             for the_attachment in attachment_list:
                 if isinstance(the_attachment, DAFile) and the_attachment.ok:
-                    #url = url_start + server.url_for('serve_stored_file', uid=this_thread.current_info['session'], number=the_attachment.number, filename=the_attachment.filename, extension=the_attachment.extension)
                     media.append(the_attachment.url_for(_external=True))
                 if isinstance(the_attachment, DAStaticFile):
                     media.append(the_attachment.url_for(_external=True))

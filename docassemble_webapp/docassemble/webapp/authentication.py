@@ -256,10 +256,10 @@ def custom_register():
                     session['validated_user'] = user.id
                     session['next'] = safe_reg_next
                     if app.config['MFA_ALLOW_APP'] and (twilio_config is None or not app.config['MFA_ALLOW_SMS']):
-                        return redirect(url_for('mfa_setup'))
+                        return redirect(url_for('mfa.mfa_setup'))
                     if not app.config['MFA_ALLOW_APP']:
-                        return redirect(url_for('mfa_sms_setup'))
-                    return redirect(url_for('mfa_choose'))
+                        return redirect(url_for('mfa.mfa_sms_setup'))
+                    return redirect(url_for('mfa.mfa_choose'))
             return docassemble_flask_user.views._do_login_user(user, safe_reg_next)
         return redirect(url_for('user.login') + '?next=' + urllibquote(safe_reg_next))
 
@@ -320,21 +320,18 @@ def custom_login():
                 user, user_email = user_manager.find_user_by_email(login_form.username.data)
         else:
             user, user_email = user_manager.find_user_by_email(login_form.email.data)
-        # if not user and daconfig['ldap login'].get('enabled', False):
         if user:
             safe_next = user_manager.make_safe_url_function(login_form.next.data)
-            # safe_next = login_form.next.data
-            # safe_next = url_for('post_login', next=login_form.next.data)
             if app.config['USE_MFA']:
                 if user.otp_secret is None and len(app.config['MFA_REQUIRED_FOR_ROLE']) and user.has_role(
                         *app.config['MFA_REQUIRED_FOR_ROLE']):
                     session['validated_user'] = user.id
                     session['next'] = safe_next
                     if app.config['MFA_ALLOW_APP'] and (twilio_config is None or not app.config['MFA_ALLOW_SMS']):
-                        return redirect(url_for('mfa_setup'))
+                        return redirect(url_for('mfa.mfa_setup'))
                     if not app.config['MFA_ALLOW_APP']:
-                        return redirect(url_for('mfa_sms_setup'))
-                    return redirect(url_for('mfa_choose'))
+                        return redirect(url_for('mfa.mfa_sms_setup'))
+                    return redirect(url_for('mfa.mfa_choose'))
                 if user.otp_secret is not None:
                     session['validated_user'] = user.id
                     session['next'] = safe_next
@@ -351,7 +348,7 @@ def custom_login():
                         if not success:
                             flash(word("Unable to send verification code."), 'error')
                             return redirect(url_for('user.login'))
-                    return add_secret_to(redirect(url_for('mfa_login')))
+                    return add_secret_to(redirect(url_for('mfa.mfa_login')))
             if user_manager.enable_email and user_manager.enable_confirm_email \
                     and len(daconfig['email confirmation privileges']) \
                     and user.has_role(*daconfig['email confirmation privileges']) \
@@ -365,20 +362,6 @@ def custom_login():
                 docassemble_flask_user.views._do_login_user(user, safe_next, login_form.remember_me.data))
     if is_json:
         return jsonify(action='login', csrf_token=generate_csrf())
-    # if 'officeaddin' in safe_next:
-    #     extra_css = """
-    # <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.debug.js"></script>"""
-    #     extra_js = """
-    # <script type="text/javascript" src=""" + '"' + url_for('static', filename='office/fabric.js') + '"' + """></script>
-    # <script type="text/javascript" src=""" + '"' + url_for('static', filename='office/polyfill.js') + '"' + """></script>
-    # <script type="text/javascript" src=""" + '"' + url_for('static', filename='office/app.js') + '"' + """></script>"""
-    #     return render_template(user_manager.login_template,
-    #                            form=login_form,
-    #                            login_form=login_form,
-    #                            register_form=register_form,
-    #                            extra_css=Markup(extra_css),
-    #                            extra_js=Markup(extra_js))
-    # else:
     response = make_response(user_manager.render_function(user_manager.login_template,
                                                           form=login_form,
                                                           login_form=login_form,
@@ -460,7 +443,7 @@ def unauthenticated():
 
 def unauthorized():
     flash(word("You are not authorized to access") + " " + word(request.path), 'error')
-    return redirect(url_for('interview_list', next=fix_http(request.url)))
+    return redirect(url_for('interview.interview_list', next=fix_http(request.url)))
 
 
 def delete_session_info():
@@ -1543,7 +1526,7 @@ def get_github_flow():
         client_id=client_id,
         client_secret=client_secret,
         scope='repo admin:public_key read:user user:email read:org',
-        redirect_uri=url_for('github_oauth_callback', _external=True),
+        redirect_uri=url_for('auth.github_oauth_callback', _external=True),
         auth_uri='http://github.com/login/oauth/authorize',
         token_uri='https://github.com/login/oauth/access_token',
         access_type='offline',

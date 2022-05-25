@@ -36,7 +36,7 @@ from flask_cors import cross_origin
 from flask_login import current_user, logout_user
 from sqlalchemy import select
 
-user = Blueprint('user', __name__)
+account = Blueprint('account', __name__)
 
 
 def update_api_key(user_id, api_key, name, method, allowed, add_to_allowed, remove_from_allowed, permissions,
@@ -339,7 +339,7 @@ def do_api_user_api(user_id):
         return ('', 204)
 
 
-@user.route('/manage_api', methods=['GET', 'POST'])
+@account.route('/manage_api', methods=['GET', 'POST'])
 @login_required
 def manage_api():
     setup_translation()
@@ -557,7 +557,7 @@ def manage_api():
     return render_template('pages/manage_api.html', **argu)
 
 
-@user.route('/api/user/api', methods=['GET', 'POST', 'DELETE', 'PATCH'])
+@account.route('/api/user/api', methods=['GET', 'POST', 'DELETE', 'PATCH'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['GET', 'POST', 'DELETE', 'PATCH', 'HEAD'], automatic_options=True)
 def api_user_api():
@@ -571,7 +571,7 @@ def api_user_api():
     return do_api_user_api(current_user.id)
 
 
-@user.route('/user/manage', methods=['POST', 'GET'])
+@account.route('/user/manage', methods=['POST', 'GET'])
 def manage_account():
     if (current_user.is_authenticated and current_user.has_roles(['admin'])) or not daconfig.get(
             'user can delete account', True):
@@ -624,7 +624,7 @@ def manage_account():
                            logged_in=logged_in)
 
 
-@user.route('/api/user', methods=['GET', 'POST'])
+@account.route('/api/user', methods=['GET', 'POST'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['GET', 'POST', 'HEAD'], automatic_options=True)
 def api_user():
@@ -661,7 +661,7 @@ def api_user():
     return ('', 204)
 
 
-@user.route('/api/user/privileges', methods=['GET'])
+@account.route('/api/user/privileges', methods=['GET'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['GET', 'HEAD'], automatic_options=True)
 def api_user_privileges():
@@ -677,7 +677,7 @@ def api_user_privileges():
         return jsonify(user_info['privileges'])
 
 
-@user.route('/api/user/new', methods=['POST'])
+@account.route('/api/user/new', methods=['POST'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['POST', 'HEAD'], automatic_options=True)
 def api_create_user():
@@ -727,7 +727,7 @@ def api_create_user():
     return jsonify_with_status(dict(user_id=user_id, password=password), 200)
 
 
-@user.route('/api/user_invite', methods=['POST'])
+@account.route('/api/user_invite', methods=['POST'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['POST', 'HEAD'], automatic_options=True)
 def api_invite_user():
@@ -806,7 +806,7 @@ def api_invite_user():
     return jsonify(invite_info)
 
 
-@user.route('/api/user_info', methods=['GET'])
+@account.route('/api/user_info', methods=['GET'])
 @cross_origin(origins='*', methods=['GET', 'HEAD'], automatic_options=True)
 def api_user_info():
     if not api_verify(request, roles=['admin', 'advocate'], permissions=['access_user_info']):
@@ -824,7 +824,7 @@ def api_user_info():
         return jsonify(user_info)
 
 
-@user.route('/api/user/<int:user_id>', methods=['GET', 'DELETE', 'POST'])
+@account.route('/api/user/<int:user_id>', methods=['GET', 'DELETE', 'POST'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['GET', 'DELETE', 'POST', 'HEAD'], automatic_options=True)
 def api_user_by_id(user_id):
@@ -888,7 +888,7 @@ def api_user_by_id(user_id):
     return ('', 204)
 
 
-@user.route('/api/user/<int:user_id>/privileges', methods=['GET', 'DELETE', 'POST'])
+@account.route('/api/user/<int:user_id>/privileges', methods=['GET', 'DELETE', 'POST'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['GET', 'DELETE', 'POST', 'HEAD'], automatic_options=True)
 def api_user_by_id_privileges(user_id):
@@ -928,7 +928,7 @@ def api_user_by_id_privileges(user_id):
         return ('', 204)
 
 
-@user.route('/api/user/<int:user_id>/api', methods=['GET', 'POST', 'DELETE', 'PATCH'])
+@account.route('/api/user/<int:user_id>/api', methods=['GET', 'POST', 'DELETE', 'PATCH'])
 @csrf.exempt
 @cross_origin(origins='*', methods=['GET', 'POST', 'DELETE', 'PATCH', 'HEAD'], automatic_options=True)
 def api_user_userid_api(user_id):

@@ -79,7 +79,6 @@ PERMISSIONS_LIST = [
 
 HTTP_TO_HTTPS = daconfig.get('behind https load balancer', False)
 GITHUB_BRANCH = daconfig.get('github default branch name', 'main')
-request_active = True
 
 default_playground_yaml = """metadata:
   title: Default playground interview

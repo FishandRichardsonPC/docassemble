@@ -68,7 +68,7 @@ def get_od_flow():
         client_id=client_id,
         client_secret=client_secret,
         scope='files.readwrite.all user.read offline_access',
-        redirect_uri=url_for('onedrive_callback', _external=True),
+        redirect_uri=url_for('one_drive.onedrive_callback', _external=True),
         response_type='code',
         auth_uri='https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
         token_uri='https://login.microsoftonline.com/common/oauth2/v2.0/token')
@@ -130,7 +130,7 @@ def onedrive_callback():
         return redirect(url_for('user.profile'))
     else:
         flash(word('Connected to OneDrive'), 'success')
-    return redirect(url_for('onedrive_page'))
+    return redirect(url_for('one_drive.onedrive_page'))
 
 
 @one_drive.route('/sync_with_onedrive', methods=['GET'])
@@ -142,7 +142,7 @@ def sync_with_onedrive():
         return ('File not found', 404)
     current_project = get_current_project()
     next = current_app.user_manager.make_safe_url_function(
-        request.args.get('next', url_for('playground_page', project=get_current_project())))
+        request.args.get('next', url_for('playground.playground_page', project=get_current_project())))
     auto_next = request.args.get('auto_next', None)
     if current_app.config['USE_ONEDRIVE'] is False:
         flash(word("OneDrive is not configured"), "error")
@@ -156,9 +156,9 @@ def sync_with_onedrive():
     task = docassemble.webapp.worker.sync_with_onedrive.delay(current_user.id)
     session['taskwait'] = task.id
     if auto_next:
-        return redirect(url_for('od_sync_wait', auto_next=auto_next))
+        return redirect(url_for('one_drive.od_sync_wait', auto_next=auto_next))
     else:
-        return redirect(url_for('od_sync_wait', next=next))
+        return redirect(url_for('one_drive.od_sync_wait', next=next))
 
 
 @one_drive.route('/odsyncing', methods=['GET', 'POST'])
@@ -170,7 +170,7 @@ def od_sync_wait():
         return ('File not found', 404)
     current_project = get_current_project()
     next_url = current_app.user_manager.make_safe_url_function(
-        request.args.get('next', url_for('playground_page', project=current_project)))
+        request.args.get('next', url_for('playground.playground_page', project=current_project)))
     auto_next_url = request.args.get('auto_next', None)
     if auto_next_url is not None:
         auto_next_url = current_app.user_manager.make_safe_url_function(auto_next_url)
@@ -191,7 +191,7 @@ def od_sync_wait():
       function daRestart(){
         $.ajax({
           type: 'POST',
-          url: """ + json.dumps(url_for('restart_ajax')) + """,
+          url: """ + json.dumps(url_for('util.restart_ajax')) + """,
           data: 'csrf_token=""" + my_csrf + """&action=restart',
           success: daRestartCallback,
           dataType: 'json'
@@ -262,7 +262,7 @@ def od_sync_wait():
         }
         $.ajax({
           type: 'POST',
-          url: """ + json.dumps(url_for('checkin_sync_with_onedrive')) + """,
+          url: """ + json.dumps(url_for('one_drive.checkin_sync_with_onedrive')) + """,
           data: 'csrf_token=""" + my_csrf + """',
           success: daSyncCallback,
           dataType: 'json'
@@ -396,13 +396,13 @@ def onedrive_page():
             set_od_folder(None)
             flash(word("The previously selected OneDrive folder does not exist.") + "  " + str(the_folder) + " " + str(
                 content) + " status: " + repr(r['status']), "info")
-            return redirect(url_for('onedrive_page'))
+            return redirect(url_for('one_drive.onedrive_page'))
         info = json.loads(content.decode())
         logmessage("Found " + repr(info))
         if info.get('deleted', None):
             set_od_folder(None)
             flash(word("The previously selected OneDrive folder was deleted."), "info")
-            return redirect(url_for('onedrive_page'))
+            return redirect(url_for('one_drive.onedrive_page'))
         active_folder = dict(id=the_folder, name=info.get('name', 'no name'))
         if the_folder not in item_ids:
             items.append(active_folder)

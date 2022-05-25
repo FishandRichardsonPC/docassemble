@@ -75,48 +75,6 @@ def set_max_width_points(points):
 def get_max_width_points():
     return MAX_WIDTH_POINTS
 
-# def blank_da_send_mail(*args, **kwargs):
-#     logmessage("da_send_mail: no mail agent configured!")
-#     return(None)
-
-# da_send_mail = blank_da_send_mail
-
-# def set_da_send_mail(func):
-#     global da_send_mail
-#     da_send_mail = func
-#     return
-
-# def blank_file_finder(*args, **kwargs):
-#     return(dict(filename="invalid"))
-
-# file_finder = blank_file_finder
-
-# def set_file_finder(func):
-#     global file_finder
-#     #sys.stderr.write("set the file finder to " + str(func) + "\n")
-#     file_finder = func
-#     return
-
-# def blank_url_finder(*args, **kwargs):
-#     return('about:blank')
-
-# url_finder = blank_url_finder
-
-# def set_url_finder(func):
-#     global url_finder
-#     url_finder = func
-#     return
-
-# def blank_url_for(*args, **kwargs):
-#     return('about:blank')
-
-# url_for = blank_url_for
-
-# def set_url_for(func):
-#     global url_for
-#     url_for = func
-#     return
-
 rtf_spacing = {'tight': r'\\sl0 ', 'single': r'\\sl0 ', 'oneandahalf': r'\\sl360\\slmult1 ', 'double': r'\\sl480\\slmult1 ', 'triple': r'\\sl720\\slmult1 '}
 
 rtf_after_space = {'tight': 0, 'single': 1, 'oneandahalf': 0, 'double': 0, 'triplespacing': 0, 'triple': 0}

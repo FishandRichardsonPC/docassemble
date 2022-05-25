@@ -89,7 +89,7 @@ def get_safe_next_param(param_name, default_endpoint):
 
 
 def endpoint_url(endpoint, **kwargs):
-    url = url_for('index')
+    url = url_for('index.index')
     if endpoint:
         url = url_for(endpoint, **kwargs)
     return url
@@ -761,9 +761,9 @@ function activateVariables(){
   });
 }
 
-var interviewBaseUrl = '""" + url_for('index', reset='1', cache='0',
+var interviewBaseUrl = '""" + url_for('index.index', reset='1', cache='0',
                                       i='docassemble.playground' + str(current_user.id) + ':.yml') + """';
-var shareBaseUrl = '""" + url_for('index', i='docassemble.playground' + str(current_user.id) + ':.yml') + """';
+var shareBaseUrl = '""" + url_for('index.index', i='docassemble.playground' + str(current_user.id) + ':.yml') + """';
 
 function updateRunLink(){
   if (currentProject == 'default'){
@@ -781,7 +781,7 @@ function fetchVars(changed){
   updateRunLink();
   $.ajax({
     type: "POST",
-    url: """ + '"' + url_for('playground_variables') + '"' + """ + '?project=' + currentProject,
+    url: """ + '"' + url_for('playground.playground_variables') + '"' + """ + '?project=' + currentProject,
     data: 'csrf_token=' + $("#""" + form + """ input[name='csrf_token']").val() + '&variablefile=' + $("#daVariables").val() + '&ajax=1&changed=' + (changed ? 1 : 0),
     success: function(data){
       if (data.action && data.action == 'reload'){
@@ -1629,7 +1629,7 @@ def get_gd_flow():
         client_id=client_id,
         client_secret=client_secret,
         scope='https://www.googleapis.com/auth/drive',
-        redirect_uri=url_for('google_drive_callback', _external=True),
+        redirect_uri=url_for('util.google_drive_callback', _external=True),
         access_type='offline',
         prompt='consent')
     return flow
