@@ -95,18 +95,18 @@ from docassemble.webapp.package import get_master_branch, get_package_info, get_
     user_can_edit_package
 from docassemble.webapp.packages.models import Package
 from docassemble.webapp.page_values import navigation_bar
-from docassemble.webapp.routes.playground import playground
-from docassemble.webapp.routes.account import account
-from docassemble.webapp.routes.admin import admin
-from docassemble.webapp.routes.auth import auth
-from docassemble.webapp.routes.files import files, html_index
-from docassemble.webapp.routes.google_drive import google_drive
-from docassemble.webapp.routes.index import index, indexBp
-from docassemble.webapp.routes.interview import interview, interview_menu
-from docassemble.webapp.routes.mfa import mfa
-from docassemble.webapp.routes.office import office
-from docassemble.webapp.routes.one_drive import one_drive
-from docassemble.webapp.routes.util import util
+from docassemble.webapp.blueprints.playground import playground
+from docassemble.webapp.blueprints.account import account
+from docassemble.webapp.blueprints.admin import admin
+from docassemble.webapp.blueprints.auth import auth
+from docassemble.webapp.blueprints.files import files, html_index
+from docassemble.webapp.blueprints.google_drive import google_drive
+from docassemble.webapp.blueprints.index import index, indexBp
+from docassemble.webapp.blueprints.interview import interview, interview_menu
+from docassemble.webapp.blueprints.mfa import mfa
+from docassemble.webapp.blueprints.office import office
+from docassemble.webapp.blueprints.one_drive import one_drive
+from docassemble.webapp.blueprints.util import util
 from docassemble.webapp.setup import da_version
 from docassemble.webapp.translations import setup_translation
 from docassemble.webapp.user_util import api_verify, create_new_interview, get_question_data, go_back_in_session, \

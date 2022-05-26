@@ -54,8 +54,8 @@ from docassemble.webapp.backend import generate_csrf, update_session, url_for
 from docassemble.webapp.config_server import COOKIELESS_SESSIONS, final_default_yaml_filename, version_warning
 from docassemble.webapp.daredis import r
 from docassemble.webapp.fixpickle import fix_pickle_obj
-from docassemble.webapp.routes.files import html_index
-from docassemble.webapp.routes.index import index
+from docassemble.webapp.blueprints.files import html_index
+from docassemble.webapp.blueprints.index import index
 from docassemble.webapp.translations import setup_translation
 from docassemble.webapp.users.forms import InterviewsListForm
 from docassemble.webapp.util import as_int, from_safeid, jsonify_with_status, \

@@ -1,0 +1,13 @@
+<div class="progress mt-2">
+    <div
+        class="progress-bar"
+        aria-label="{{ noquote(word('Interview Progress')) }}"
+        role="progressbar"
+        aria-valuenow="{{ str(progress) }}"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        style="width: {{ str(progress) }}%;"
+    >
+        {%if show_progress_bar_percentage %}{{ progress }}%{% endif %}
+    </div>
+</div>

@@ -779,7 +779,7 @@ else:
 
 if COOKIELESS_SESSIONS:
     index_path = '/i'
-    html_index_path = '/interviefrom docassemble.webapp.backend import advance_progress, can_access_file_number, cloud, directory_for, fetch_previous_user_dict, fetch_user_dict, generate_csrf, get_session_uids, initial_dict, url_for, url_if_existsw'
+    html_index_path = '/interview'
 else:
     index_path = '/interview'
     html_index_path = '/i'
