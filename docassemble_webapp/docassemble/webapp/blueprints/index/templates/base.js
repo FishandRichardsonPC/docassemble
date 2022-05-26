@@ -9,11 +9,7 @@ let daCheckinCode = null;
 let daCheckingIn = 0;
 let daShowingHelp = 0;
 let daIframeEmbed;
-if (window.location !== window.parent.location) {
-    daIframeEmbed = true;
-} else {
-    daIframeEmbed = false;
-}
+daIframeEmbed = window.location !== window.parent.location;
 let daJsEmbed = {% if is_js %}{{ js_target | tojson }}{% else %}false{% endif %};
 let daAllowGoingBack = {% if allow_going_back %}true{% else %}false{% endif %};
 let daSteps = {{ steps }};
@@ -69,11 +65,11 @@ Object.defineProperty(String.prototype, "daSprintf", {
             i = 0;
 
         function defaultNumber(iValue) {
-            return iValue != undefined && !isNaN(iValue) ? iValue : "0";
+            return iValue !== undefined && !isNaN(iValue) ? iValue : "0";
         }
 
         function defaultString(iValue) {
-            return iValue == undefined ? "" : "" + iValue;
+            return iValue === undefined ? "" : "" + iValue;
         }
 
         return this.replace(
@@ -81,7 +77,7 @@ Object.defineProperty(String.prototype, "daSprintf", {
             function (match, sign, filler, scale, precision, type) {
                 let strOut, space, value;
                 let asNumber = false;
-                if (match == "%%") return "%";
+                if (match === "%%") return "%";
                 if (i >= args.length) return match;
                 value = args[i];
                 while (Array.isArray(value)) {
@@ -91,14 +87,14 @@ Object.defineProperty(String.prototype, "daSprintf", {
                     value = args[i];
                 }
                 i++;
-                if (filler == undefined) filler = " "; // default
-                if (scale == undefined && !isNaN(filler)) {
+                if (filler === undefined) filler = " "; // default
+                if (scale === undefined && !isNaN(filler)) {
                     scale = filler;
                     filler = " ";
                 }
-                if (sign == undefined) sign = "sqQ".indexOf(type) >= 0 ? "+" : "-"; // default
-                if (scale == undefined) scale = 0; // default
-                if (precision == undefined) precision = ".0"; // default
+                if (sign === undefined) sign = "sqQ".indexOf(type) >= 0 ? "+" : "-"; // default
+                if (scale === undefined) scale = 0; // default
+                if (precision === undefined) precision = ".0"; // default
                 scale = parseInt(scale);
                 precision = parseInt(precision.substr(1));
                 switch (type) {
@@ -116,7 +112,7 @@ Object.defineProperty(String.prototype, "daSprintf", {
                         strOut = parseFloat(defaultNumber(value));
                         if (precision == 0) strOut = strOut.toExponential();
                         else strOut = strOut.toExponential(precision);
-                        if (type == "E") strOut = strOut.replace("e", "E");
+                        if (type === "E") strOut = strOut.replace("e", "E");
                         break;
                     case "f":
                         // decimal float
@@ -130,8 +126,8 @@ Object.defineProperty(String.prototype, "daSprintf", {
                         // Octal or Hexagesimal integer notation
                         strOut =
                             "\\\\" +
-                            (type == "o" ? "0" : type) +
-                            parseInt(defaultNumber(value)).toString(type == "o" ? 8 : 16);
+                            (type === "o" ? "0" : type) +
+                            parseInt(defaultNumber(value)).toString(type === "o" ? 8 : 16);
                         break;
                     case "q":
                         // single quoted string
@@ -149,7 +145,7 @@ Object.defineProperty(String.prototype, "daSprintf", {
                 if (typeof strOut != "string") strOut = "" + strOut;
                 if ((space = strOut.length) < scale) {
                     if (asNumber) {
-                        if (sign == "-") {
+                        if (sign === "-") {
                             if (strOut.indexOf("-") < 0)
                                 strOut = filler.repeat(scale - space) + strOut;
                             else
@@ -167,22 +163,22 @@ Object.defineProperty(String.prototype, "daSprintf", {
                                     strOut.replace("-", "");
                         }
                     } else {
-                        if (sign == "-") strOut = filler.repeat(scale - space) + strOut;
+                        if (sign === "-") strOut = filler.repeat(scale - space) + strOut;
                         else strOut = strOut + filler.repeat(scale - space);
                     }
-                } else if (asNumber && sign == "+" && strOut.indexOf("-") < 0)
+                } else if (asNumber && sign === "+" && strOut.indexOf("-") < 0)
                     strOut = "+" + strOut;
                 return strOut;
             }
         );
-    },
+    }
 });
 Object.defineProperty(window, "daSprintf", {
     value: function (str, ...rest) {
         if (typeof str == "string")
             return String.prototype.daSprintf.apply(str, rest);
         return "";
-    },
+    }
 });
 function daGoToAnchor(target) {
     if (daJsEmbed) {
@@ -225,7 +221,7 @@ function getFields() {
     for (let rawFieldName in daVarLookup) {
         if (daVarLookup.hasOwnProperty(rawFieldName)) {
             let fieldName = atob(rawFieldName);
-            if (allFields.indexOf(fieldName) == -1) {
+            if (allFields.indexOf(fieldName) === -1) {
                 allFields.push(fieldName);
             }
         }
@@ -237,7 +233,7 @@ function daAppendIfExists(fieldName, theArray) {
     let elem = $("[name='" + fieldName + "']");
     if (elem.length > 0) {
         for (let i = 0; i < theArray.length; ++i) {
-            if (theArray[i] == elem[0]) {
+            if (theArray[i] === elem[0]) {
                 return;
             }
         }
@@ -1307,9 +1303,9 @@ function daPushChanges() {
     return true;
 }
 function daProcessAjaxError(xhr, status, error) {
-    if (xhr.responseType == undefined || xhr.responseType == '' || xhr.responseType == 'text') {
+    if (xhr.responseType === undefined || xhr.responseType === '' || xhr.responseType === 'text') {
         let theHtml = xhr.responseText;
-        if (theHtml == undefined) {
+        if (theHtml === undefined) {
             $(daTargetDiv).html("error");
         } else {
             theHtml = theHtml.replace(/<script[^>]*>[^<]*<\/script>/g, '');
