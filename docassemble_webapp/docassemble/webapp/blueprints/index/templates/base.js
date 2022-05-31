@@ -28,8 +28,8 @@ let daInformed = {{ user_id_string | tojson }};
 let daShowingSpinner = false;
 let daSpinnerTimeout = null;
 let daSubmitter = null;
-let daUsingGA = {% if ga_id is not None %}true{% else %}false{% endif %};
-let daUsingSegment = {% if segment_id is not None %}true{% else %}false{% endif %};
+let daUsingGA = {% if ga_id is not none %}true{% else %}false{% endif %};
+let daUsingSegment = {% if segment_id is not none %}true{% else %}false{% endif %};
 let daDoAction = {{ do_action }};
 let daQuestionID = {{ question_id_dict | tojson }};
 let daCsrf = {{ csrf | tojson }};
@@ -330,7 +330,7 @@ function val(fieldName) {
     if ($(elem).attr('type') === "checkbox") {
         theVal = !!$(elem).prop('checked');
     } else if ($(elem).attr('type') === "radio") {
-        let fieldNameEscaped = $(elem).attr('name').replace(/(:|\.|\[|\]|,|=)/g, "\\$1");
+        let fieldNameEscaped = $(elem).attr('name').replace(/([:.\[\],=])/g, "\\$1");
         theVal = $("input[name='" + fieldNameEscaped + "']:checked").val();
         if (typeof (theVal) == 'undefined') {
             theVal = null;
@@ -361,7 +361,7 @@ function daFormAsJSON() {
     for (let i = 0; i < n; ++i) {
         let key = formData[i]['name'];
         let val = formData[i]['value'];
-        if ($.inArray(key, daFieldsToSkip) != -1 || key.indexOf('_ignore') == 0) {
+        if ($.inArray(key, daFieldsToSkip) !== -1 || key.indexOf('_ignore') === 0) {
             continue;
         }
         if (typeof daVarLookupRev[key] != "undefined") {
@@ -372,7 +372,7 @@ function daFormAsJSON() {
     }
     return JSON.stringify(data);
 }
-let daMessageLog = JSON.parse(atob({{ safeid(json.dumps(docassemble.base.functions.get_message_log())) }}));
+let daMessageLog = JSON.parse(atob({{ message_log }}));
 function daPreloadImage(url) {
     let img = new Image();
     img.src = url;
@@ -390,14 +390,15 @@ function flash(message, priority, clear) {
     if (priority == null) {
         priority = 'info'
     }
-    if (!$("#daflash").length) {
+    const daFlash = $("#daflash");
+    if (!daFlash.length) {
         $(daTargetDiv).append(daSprintf(daNotificationContainer, ""));
     }
     if (clear) {
-        $("#daflash").empty();
+        daFlash.empty();
     }
     if (message != null) {
-        $("#daflash").append(daSprintf(daNotificationMessage, priority, message));
+        daFlash.append(daSprintf(daNotificationMessage, priority, message));
         if (priority === 'success') {
             setTimeout(function () {
                 $("#daflash .alert-success").hide(300, function () {
@@ -619,8 +620,7 @@ function daScrollChat() {
     let chatScroller = $("#daCorrespondence");
     if (chatScroller.length) {
         let height = chatScroller[0].scrollHeight;
-        //console.log("Slow scrolling to " + height);
-        if (height == 0) {
+        if (height === 0) {
             daNotYetScrolled = true;
             return;
         }
@@ -815,7 +815,7 @@ function daInitializeSocket() {
                                 $this.trigger('change');
                             }
                         }
-                    } else if (type == 'radio') {
+                    } else if (type === 'radio') {
                         if (name in valArray) {
                             if (valArray[name] == $this.val()) {
                                 if ($this.prop('checked') != true) {
@@ -839,18 +839,16 @@ function daInitializeSocket() {
                 });
             });
             if (data.clicked) {
-                //console.log("Need to click " + data.clicked);
-                $(data.clicked).prop("disabled", false);
-                $(data.clicked).addClass("da-click-selected");
-                if ($(data.clicked).prop("tagName") == 'A' && typeof $(data.clicked).attr('href') != 'undefined' && ($(data.clicked).attr('href').indexOf('javascript') == 0 || $(data.clicked).attr('href').indexOf('#') == 0)) {
+                const clickIt = $(data.clicked)
+                clickIt.prop("disabled", false);
+                clickIt.addClass("da-click-selected");
+                if (clickIt.prop("tagName") === 'A' && typeof clickIt.attr('href') != 'undefined' && (clickIt.attr('href').indexOf('javascript') === 0 || clickIt.attr('href').indexOf('#') === 0)) {
                     setTimeout(function () {
-                        $(data.clicked).removeClass("da-click-selected");
+                        clickIt.removeClass("da-click-selected");
                     }, 2200);
                 }
                 setTimeout(function () {
-                    //console.log("Clicking it now");
-                    $(data.clicked).click();
-                    //console.log("Clicked it.");
+                    clickIt.click();
                 }, 200);
             }
         });
@@ -1349,7 +1347,14 @@ function daProcessAjax(data, form, doScroll, actionURL) {
     if (data.question_data) {
         daQuestionData = data.question_data;
     }
-    if (data.action == 'body') {{{ forceFullScreen }}
+    if (data.action == 'body') {
+        {% if forceFullScreen %}
+          if (data.steps > 1 && window != top) {
+            top.location.href = location.href;
+            return;
+          }
+        {% endif %}
+        {{ forceFullScreen }}
         if ("activeElement" in document) {
             document.activeElement.blur();
         }
@@ -3352,6 +3357,6 @@ try {
 {% endif %}
 {% endfor %}
 
-{% if question_data is not None %}
+{% if question_data is not none %}
 daQuestionData = {{ question_data | tojson }}
 {% endif %}

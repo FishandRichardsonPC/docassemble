@@ -49,26 +49,24 @@ from docassemble.webapp.config_server import ALLOW_REGISTRATION, BUTTON_COLOR_NA
     exit_page, final_default_yaml_filename, ga_configured, google_config, index_path, is_integer, \
     key_requires_preassembly, main_page_parts, match_brackets, match_inside_and_outside_brackets, match_inside_brackets, \
     reserved_argnames, valid_voicerss_dialects, voicerss_config
-from docassemble.webapp.global_values import global_css, global_js
 from docassemble.webapp.core.models import MachineLearning, SpeakList
 from docassemble.webapp.daredis import r
 from docassemble.webapp.db_object import db
 from docassemble.webapp.files import SavedFile, get_ext_and_mimetype
+from docassemble.webapp.global_values import global_css, global_js
 from docassemble.webapp.lock import obtain_lock, release_lock
 from docassemble.webapp.package import get_url_from_file_reference
 from docassemble.webapp.page_values import additional_css, additional_scripts, exit_href, navigation_bar, \
     standard_html_start, standard_scripts
 from docassemble.webapp.screenreader import to_text
-from docassemble.webapp.setup import da_version
 from docassemble.webapp.users.models import TempUser
 from docassemble.webapp.util import MD5Hash, add_referer, as_int, do_redirect, fresh_dictionary, from_safeid, \
     get_history, get_part, illegal_variable_name, indent_by, is_mobile_or_tablet, \
-    myb64unquote, noquote, process_bracket_expression, process_file, process_set_variable, refresh_or_continue, safeid, \
+    myb64unquote, process_bracket_expression, process_file, process_set_variable, refresh_or_continue, safeid, \
     secure_filename, sub_indices, tidy_action, title_converter, update_current_info_with_session_info
 from docassemble_textstat.textstat import textstat
-from flask import render_template, Blueprint, current_app, flash, get_flashed_messages, jsonify, make_response, \
-    redirect, request, \
-    send_file, session
+from flask import Blueprint, current_app, flash, get_flashed_messages, jsonify, make_response, redirect, \
+    render_template, request, send_file, session
 from flask_login import current_user, logout_user
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
@@ -249,7 +247,7 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
                         menu_item_classes = ' d-none d-md-block'
                     else:
                         menu_item_classes = ''
-                    match_action = re.search(r'^\?action=([^\&]+)', menu_item['url'])
+                    match_action = re.search(r'^\?action=([^&]+)', menu_item['url'])
                     if match_action:
                         custom_menu += '<a class="dropdown-item' + menu_item_classes + '" data-embaction="' + match_action.group(
                             1) + '" href="' + menu_item['url'] + '">' + menu_item['label'] + '</a>'
@@ -552,11 +550,11 @@ def index(action_argument=None, refer=None):
         yaml_filename = request.args.get('i', guess_yaml_filename())
     if yaml_filename is None:
         if current_user.is_anonymous and not daconfig.get('allow anonymous access', True):
-            app.logger.error(
+            current_app.logger.error(
                 "Redirecting to login because no YAML filename provided and no anonymous access is allowed.\n")
             return redirect(url_for('user.login'))
         if len(daconfig['dispatch']) > 0:
-            app.logger.error("Redirecting to dispatch page because no YAML filename provided.\n")
+            current_app.logger.error("Redirecting to dispatch page because no YAML filename provided.\n")
             return redirect(url_for('interview.interview_start'))
         yaml_filename = final_default_yaml_filename
     action = None
@@ -598,7 +596,7 @@ def index(action_argument=None, refer=None):
                 current_user.has_role('admin', 'developer') or current_user.can_do('demo_interviews'))):
             raise DAError(word("Not authorized"), code=403)
         if current_user.is_anonymous and not daconfig.get('allow anonymous access', True):
-            app.logger.error("Redirecting to login because no anonymous access allowed.\n")
+            current_app.logger.error("Redirecting to login because no anonymous access allowed.\n")
             return redirect(url_for('user.login', next=url_for('index.index', **request.args)))
         if yaml_filename.startswith('docassemble.playground'):
             if not current_app.config['ENABLE_PLAYGROUND']:
@@ -627,7 +625,7 @@ def index(action_argument=None, refer=None):
             if unique_sessions is not False and not current_user.is_authenticated:
                 delete_session_for_interview(yaml_filename)
                 flash(word("You need to be logged in to access this interview."), "info")
-                app.logger.error("Redirecting to login because sessions are unique.\n")
+                current_app.logger.error("Redirecting to login because sessions are unique.\n")
                 return redirect(url_for('user.login', next=url_for('index.index', **request.args)))
             if interview.consolidated_metadata.get('temporary session', False):
                 if session_info is not None:
@@ -647,7 +645,7 @@ def index(action_argument=None, refer=None):
                         not interview.allowed_to_access(is_anonymous=True)):
                     delete_session_for_interview(yaml_filename)
                     flash(word("You need to be logged in to access this interview."), "info")
-                    app.logger.error(
+                    current_app.logger.error(
                         "Redirecting to login because anonymous user not allowed to access this interview.\n")
                     return redirect(url_for('user.login', next=url_for('index.index', **request.args)))
             elif not interview.allowed_to_initiate(has_roles=[role.name for role in current_user.roles]):
@@ -675,14 +673,14 @@ def index(action_argument=None, refer=None):
             if unique_sessions is not False and not current_user.is_authenticated:
                 delete_session_for_interview(yaml_filename)
                 flash(word("You need to be logged in to access this interview."), "info")
-                app.logger.error("Redirecting to login because sessions are unique.\n")
+                current_app.logger.error("Redirecting to login because sessions are unique.\n")
                 return redirect(url_for('user.login', next=url_for('index.index', **request.args)))
             if current_user.is_anonymous:
                 if (not interview.allowed_to_initiate(is_anonymous=True)) or (
                         not interview.allowed_to_access(is_anonymous=True)):
                     delete_session_for_interview(yaml_filename)
                     flash(word("You need to be logged in to access this interview."), "info")
-                    app.logger.error(
+                    current_app.logger.error(
                         "Redirecting to login because anonymous user not allowed to access this interview.\n")
                     return redirect(url_for('user.login', next=url_for('index.index', **request.args)))
             elif not interview.allowed_to_initiate(has_roles=[role.name for role in current_user.roles]):
@@ -725,10 +723,10 @@ def index(action_argument=None, refer=None):
         steps, user_dict, is_encrypted = fetch_user_dict(user_code, yaml_filename, secret=secret)
     except Exception as the_err:
         try:
-            app.logger.error("index: there was an exception " + str(the_err.__class__.__name__) + ": " + str(
+            current_app.logger.error("index: there was an exception " + str(the_err.__class__.__name__) + ": " + str(
                 the_err) + " after fetch_user_dict with %s and %s, so we need to reset\n" % (user_code, yaml_filename))
         except:
-            app.logger.error("index: there was an exception " + str(
+            current_app.logger.error("index: there was an exception " + str(
                 the_err.__class__.__name__) + " after fetch_user_dict with %s and %s, so we need to reset\n" % (
                                  user_code, yaml_filename))
         release_lock(user_code, yaml_filename)
@@ -739,15 +737,15 @@ def index(action_argument=None, refer=None):
             if isinstance(redirect_url, str) and redirect_url:
                 redirect_url = redirect_url.format(i=urllibquote(yaml_filename),
                                                    error=urllibquote('answers_fetch_fail'))
-                app.logger.error("Session error because failure to get user dictionary.\n")
+                current_app.logger.error("Session error because failure to get user dictionary.\n")
                 return do_redirect(redirect_url, is_ajax, is_json, js_target)
-        app.logger.error("Redirecting back to index because of failure to get user dictionary.\n")
+        current_app.logger.error("Redirecting back to index because of failure to get user dictionary.\n")
         response = do_redirect(url_for('index.index', i=yaml_filename), is_ajax, is_json, js_target)
         if session_parameter is not None:
             flash(word("Unable to retrieve interview session.  Starting a new session instead."), "error")
         return response
     if user_dict is None:
-        app.logger.error("index: no user_dict found after fetch_user_dict with %s and %s, so we need to reset\n" % (
+        current_app.logger.error("index: no user_dict found after fetch_user_dict with %s and %s, so we need to reset\n" % (
             user_code, yaml_filename))
         release_lock(user_code, yaml_filename)
         logmessage("index: dictionary fetch returned no results")
@@ -755,9 +753,9 @@ def index(action_argument=None, refer=None):
         redirect_url = daconfig.get('session error redirect url', None)
         if isinstance(redirect_url, str) and redirect_url:
             redirect_url = redirect_url.format(i=urllibquote(yaml_filename), error=urllibquote('answers_missing'))
-            app.logger.error("Session error because user dictionary was None.\n")
+            current_app.logger.error("Session error because user dictionary was None.\n")
             return do_redirect(redirect_url, is_ajax, is_json, js_target)
-        app.logger.error("Redirecting back to index because user dictionary was None.\n")
+        current_app.logger.error("Redirecting back to index because user dictionary was None.\n")
         response = do_redirect(url_for('index.index', i=yaml_filename), is_ajax, is_json, js_target)
         flash(word("Unable to locate interview session.  Starting a new session instead."), "error")
         return response
@@ -1149,7 +1147,7 @@ def index(action_argument=None, refer=None):
                 changed = True
             except Exception as errMess:
                 try:
-                    app.logger.error(errMess.__class__.__name__ + ": " + str(errMess) + " after running " + the_string)
+                    current_app.logger.error(errMess.__class__.__name__ + ": " + str(errMess) + " after running " + the_string)
                 except:
                     pass
                 error_messages.append(("error", "Error: " + errMess.__class__.__name__ + ": " + str(errMess)))
@@ -1909,7 +1907,7 @@ def index(action_argument=None, refer=None):
                                 changed = True
                             except Exception as errMess:
                                 try:
-                                    app.logger.error("Error: " + errMess.__class__.__name__ + ": " + str(
+                                    current_app.logger.error("Error: " + errMess.__class__.__name__ + ": " + str(
                                         errMess) + " after trying to run " + the_string + "\n")
                                 except:
                                     pass
@@ -1935,7 +1933,7 @@ def index(action_argument=None, refer=None):
                             exec(the_string, user_dict)
                             changed = True
                         except Exception as errMess:
-                            app.logger.error("Error: " + errMess.__class__.__name__ + ": " + str(
+                            current_app.logger.error("Error: " + errMess.__class__.__name__ + ": " + str(
                                 errMess) + " after running " + the_string + "\n")
                             error_messages.append(
                                 ("error", "Error: " + errMess.__class__.__name__ + ": " + str(errMess)))
@@ -2068,7 +2066,7 @@ def index(action_argument=None, refer=None):
                                     exec(the_string, user_dict)
                                     changed = True
                                 except Exception as errMess:
-                                    app.logger.error("Error: " + errMess.__class__.__name__ + ": " + str(
+                                    current_app.logger.error("Error: " + errMess.__class__.__name__ + ": " + str(
                                         errMess) + "after running " + the_string + "\n")
                                     error_messages.append(
                                         ("error", "Error: " + errMess.__class__.__name__ + ": " + str(errMess)))
@@ -2093,7 +2091,7 @@ def index(action_argument=None, refer=None):
                             exec(the_string, user_dict)
                             changed = True
                         except Exception as errMess:
-                            app.logger.error("Error: " + errMess.__class__.__name__ + ": " + str(
+                            current_app.logger.error("Error: " + errMess.__class__.__name__ + ": " + str(
                                 errMess) + "after running " + the_string + "\n")
                             error_messages.append(
                                 ("error", "Error: " + errMess.__class__.__name__ + ": " + str(errMess)))
@@ -2254,7 +2252,7 @@ def index(action_argument=None, refer=None):
         reset_user_dict(user_code, yaml_filename)
         delete_session_for_interview(i=yaml_filename)
         release_lock(user_code, yaml_filename)
-        app.logger.error("Redirecting because of an exit.\n")
+        current_app.logger.error("Redirecting because of an exit.\n")
         if interview_status.questionText != '':
             response = do_redirect(interview_status.questionText, is_ajax, is_json, js_target)
         else:
@@ -2270,7 +2268,7 @@ def index(action_argument=None, refer=None):
             reset_user_dict(user_code, yaml_filename)
         release_lock(user_code, yaml_filename)
         delete_session_info()
-        app.logger.error("Redirecting because of a logout.\n")
+        current_app.logger.error("Redirecting because of a logout.\n")
         if interview_status.questionText != '':
             response = do_redirect(interview_status.questionText, is_ajax, is_json, js_target)
         else:
@@ -2298,7 +2296,7 @@ def index(action_argument=None, refer=None):
         return response
     if interview_status.question.question_type == "signin":
         release_lock(user_code, yaml_filename)
-        app.logger.error("Redirecting because of a signin.\n")
+        current_app.logger.error("Redirecting because of a signin.\n")
         response = do_redirect(url_for('user.login', next=url_for('index.index', i=yaml_filename, session=user_code)),
                                is_ajax, is_json, js_target)
         if return_fake_html:
@@ -2308,7 +2306,7 @@ def index(action_argument=None, refer=None):
         return response
     if interview_status.question.question_type == "register":
         release_lock(user_code, yaml_filename)
-        app.logger.error("Redirecting because of a register.\n")
+        current_app.logger.error("Redirecting because of a register.\n")
         response = do_redirect(
             url_for('user.register', next=url_for('index.index', i=yaml_filename, session=user_code)),
             is_ajax, is_json, js_target)
@@ -2319,7 +2317,7 @@ def index(action_argument=None, refer=None):
         return response
     if interview_status.question.question_type == "leave":
         release_lock(user_code, yaml_filename)
-        app.logger.error("Redirecting because of a leave.\n")
+        current_app.logger.error("Redirecting because of a leave.\n")
         if interview_status.questionText != '':
             response = do_redirect(interview_status.questionText, is_ajax, is_json, js_target)
         else:
@@ -2384,7 +2382,7 @@ def index(action_argument=None, refer=None):
         response_to_send.headers[
             'Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
     elif interview_status.question.question_type == "redirect":
-        app.logger.error("Redirecting because of a redirect.\n")
+        current_app.logger.error("Redirecting because of a redirect.\n")
         response_to_send = do_redirect(interview_status.questionText, is_ajax, is_json, js_target)
     else:
         response_to_send = None
@@ -2472,7 +2470,7 @@ def index(action_argument=None, refer=None):
             do_action = json.dumps(interview_status.question.checkin)
         else:
             do_action = 'null'
-        chat_available = user_dict['_internal']['livehelp']['availability']
+        chat_available = user_dict['_internal']['livehelp']['availability'] or 'unavailable'
         chat_mode = user_dict['_internal']['livehelp']['mode']
         if chat_available == 'unavailable':
             chat_status = 'off'
@@ -2518,16 +2516,6 @@ def index(action_argument=None, refer=None):
         else:
             debug_readability_help = ''
             debug_readability_question = ''
-        if interview.force_fullscreen is True or (
-                re.search(r'mobile', str(interview.force_fullscreen).lower()) and is_mobile_or_tablet()):
-            forceFullScreen = """
-          if (data.steps > 1 && window != top) {
-            top.location.href = location.href;
-            return;
-          }
-"""
-        else:
-            forceFullScreen = ''
         the_checkin_interval = interview.options.get('checkin interval', CHECKIN_INTERVAL)
         if interview.options.get('analytics on', True):
             if ga_configured:
@@ -2598,11 +2586,13 @@ def index(action_argument=None, refer=None):
             debug_readability_question=debug_readability_question,
             button_style=current_app.config['BUTTON_STYLE'],
             ROOT=ROOT,
-            forceFullScreen=forceFullScreen,
+            forceFullScreen=interview.force_fullscreen is True or (re.search(r'mobile', str(interview.force_fullscreen).lower()) and is_mobile_or_tablet()),
             custom_data_types=interview.custom_data_types,
             custom_types=docassemble.base.functions.custom_types,
             question_data=interview_status.as_data(user_dict) if interview.options.get('send question data', False) else None,
-            popover_trigger=interview.options.get('popover trigger', 'focus')
+            popover_trigger=interview.options.get('popover trigger', 'focus'),
+            chat_available=chat_available,
+            message_log=safeid(json.dumps(docassemble.base.functions.get_message_log()))
         )
         scripts += """
     <script type="text/javascript">
@@ -2992,7 +2982,7 @@ def index(action_argument=None, refer=None):
         if reload_after and reload_after > 0:
             data['reload_after'] = reload_after
         if 'action' in data and data['action'] == 'redirect' and 'url' in data:
-            app.logger.error("Redirecting because of a redirect action.\n")
+            current_app.logger.error("Redirecting because of a redirect action.\n")
             response = redirect(data['url'])
         else:
             response = jsonify(**data)
