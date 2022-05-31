@@ -59,7 +59,7 @@ from docassemble.base.config import daconfig, hostname, in_celery
 from docassemble.base.error import DAError, DAErrorMissingVariable
 from docassemble.base.functions import ReturnValue, get_default_timezone, word
 from docassemble.base.generate_key import random_alphanumeric, random_lower_string, random_string
-from docassemble.base.logger import logmessage
+from docassemble.base.logger import logmessage, the_logger
 from docassemble.base.pandoc import convertible_extensions, convertible_mimetypes, word_to_markdown
 from docassemble.base.standardformatter import as_sms, get_choices_with_abb
 from docassemble.base.util import DADict, DAEmail, DAEmailRecipient, DAEmailRecipientList, DAFile, DAFileCollection, \
@@ -268,15 +268,11 @@ def task_ready(task_id):
 def wait_for_task(task_id, timeout=None):
     if timeout is None:
         timeout = 3
-    # logmessage("wait_for_task: starting")
     try:
         result = docassemble.webapp.worker.workerapp.AsyncResult(id=task_id)
         if result.ready():
-            # logmessage("wait_for_task: was ready")
             return True
-        # logmessage("wait_for_task: waiting for task to complete")
         result.get(timeout=timeout)
-        # logmessage("wait_for_task: returning true")
         return True
     except docassemble.webapp.worker.TimeoutError:
         logmessage("wait_for_task: timed out")
@@ -1155,6 +1151,7 @@ def monitor():
       }
       function daActivateChatArea(key){
           //console.log("daActivateChatArea with " + key);
+from docassemble.base.logger import set_logger
           var skey = key.replace(/(:|\.|\[|\]|,|=|\/)/g, '\\\\$1');
           if (!$("#chatarea" + skey).find('input').first().is(':focus')){
             $("#listelement" + skey).addClass("da-new-message");
@@ -2135,39 +2132,42 @@ def server_error(the_error):
     else:
         the_history = None
     the_vars = None
-    if isinstance(the_error, DAError):
-        errmess = str(the_error)
-        the_trace = None
-        logmessage(errmess)
-    elif isinstance(the_error, TemplateError):
-        errmess = str(the_error)
-        if hasattr(the_error, 'name') and the_error.name is not None:
-            errmess += "\nName: " + str(the_error.name)
-        if hasattr(the_error, 'filename') and the_error.filename is not None:
-            errmess += "\nFilename: " + str(the_error.filename)
-        if hasattr(the_error, 'docx_context'):
-            errmess += "\n\nContext:\n" + "\n".join(map(lambda x: "  " + x, the_error.docx_context))
-        the_trace = traceback.format_exc()
-        try:
-            logmessage(errmess)
-        except:
-            logmessage("Could not log the error message")
+    if the_logger is not None:
+        the_logger.error("Page failed to load", exc_info=the_error)
     else:
-        try:
-            errmess = str(type(the_error).__name__) + ": " + str(the_error)
-        except:
-            errmess = str(type(the_error).__name__)
-        if hasattr(the_error, 'traceback'):
-            the_trace = the_error.traceback
-        else:
+        if isinstance(the_error, DAError):
+            errmess = str(the_error)
+            the_trace = None
+            logmessage(errmess)
+        elif isinstance(the_error, TemplateError):
+            errmess = str(the_error)
+            if hasattr(the_error, 'name') and the_error.name is not None:
+                errmess += "\nName: " + str(the_error.name)
+            if hasattr(the_error, 'filename') and the_error.filename is not None:
+                errmess += "\nFilename: " + str(the_error.filename)
+            if hasattr(the_error, 'docx_context'):
+                errmess += "\n\nContext:\n" + "\n".join(map(lambda x: "  " + x, the_error.docx_context))
             the_trace = traceback.format_exc()
-        if hasattr(docassemble.base.functions.this_thread,
-                   'misc') and 'current_field' in docassemble.base.functions.this_thread.misc:
-            errmess += "\nIn field index number " + str(docassemble.base.functions.this_thread.misc['current_field'])
-        if hasattr(the_error, 'da_line_with_error'):
-            errmess += "\nIn line: " + str(the_error.da_line_with_error)
+            try:
+                logmessage(errmess)
+            except:
+                logmessage("Could not log the error message")
+        else:
+            try:
+                errmess = str(type(the_error).__name__) + ": " + str(the_error)
+            except:
+                errmess = str(type(the_error).__name__)
+            if hasattr(the_error, 'traceback'):
+                the_trace = the_error.traceback
+            else:
+                the_trace = traceback.format_exc()
+            if hasattr(docassemble.base.functions.this_thread,
+                       'misc') and 'current_field' in docassemble.base.functions.this_thread.misc:
+                errmess += "\nIn field index number " + str(docassemble.base.functions.this_thread.misc['current_field'])
+            if hasattr(the_error, 'da_line_with_error'):
+                errmess += "\nIn line: " + str(the_error.da_line_with_error)
 
-        logmessage(the_trace)
+            logmessage(the_trace)
     if isinstance(the_error, DAError):
         error_code = the_error.error_code
     elif isinstance(the_error, werkzeug.exceptions.HTTPException):

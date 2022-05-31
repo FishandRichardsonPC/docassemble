@@ -3,7 +3,6 @@ import copy
 import datetime
 import json
 import re
-import sys
 import urllib
 from urllib.parse import quote as urllibquote, urlparse
 

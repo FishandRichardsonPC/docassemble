@@ -849,7 +849,6 @@ description-file = README
 """
         setuppy = """\
 import os
-import sys
 from setuptools import setup, find_packages
 from fnmatch import fnmatchcase
 from distutils2.util import convert_path

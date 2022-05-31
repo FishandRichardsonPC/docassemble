@@ -57,24 +57,14 @@ class GoogleSignIn(OAuthSignIn):
 
     def authorize(self):
         result = urllib.parse.parse_qs(request.data.decode())
-        # logmessage("GoogleSignIn, args: " + str([str(arg) + ": " + str(request.args[arg]) for arg in request.args]))
-        # logmessage("GoogleSignIn, request: " + str(request.data))
-        # logmessage("GoogleSignIn, result: " + repr(raw_result))
         session['google_id'] = result.get('id', [None])[0]
         session['google_email'] = result.get('email', [None])[0]
         session['google_name'] = result.get('name', [None])[0]
         response = make_response(json.dumps('Successfully connected user.'), 200)
         response.headers['Content-Type'] = 'application/json'
-        # oauth_session = self.service.get_auth_session(
-        #     data={'code': request.args['code'],
-        #           'grant_type': 'authorization_code',
-        #           'redirect_uri': self.get_callback_url()}
-        # )
         return response
 
     def callback(self):
-        # logmessage("GoogleCallback, args: " + str([str(arg) + ": " + str(request.args[arg]) for arg in request.args]))
-        # logmessage("GoogleCallback, request: " + str(request.data))
         email = session.get('google_email', None)
         google_id = session.get('google_id', None)
         google_name = session.get('google_name', None)
@@ -123,7 +113,6 @@ class FacebookSignIn(OAuthSignIn):
         )
         me = oauth_session.get('me',
                                params={'fields': 'id,name,first_name,middle_name,last_name,name_format,email'}).json()
-        # logmessage("Facebook: returned " + json.dumps(me))
         return (
             'facebook$' + str(me['id']),
             me.get('email').split('@')[0],
@@ -211,7 +200,6 @@ class Auth0SignIn(OAuthSignIn):
                   'redirect_uri': self.get_callback_url()}
         )
         me = oauth_session.get('userinfo').json()
-        # logmessage("Auth0 returned " + json.dumps(me))
         user_id = me.get('sub', me.get('user_id'))
         social_id = 'auth0$' + str(user_id)
         username = me.get('name')
@@ -260,7 +248,6 @@ class KeycloakSignIn(OAuthSignIn):
         )
         me = oauth_session.get(
             'auth/realms/' + daconfig['oauth']['keycloak']['realm'] + '/protocol/openid-connect/userinfo').json()
-        # logmessage("keycloak returned " + json.dumps(me))
         user_id = me.get('sub')
         social_id = 'keycloak$' + str(user_id)
         username = me.get('preferred_username')
@@ -302,7 +289,6 @@ class TwitterSignIn(OAuthSignIn):
         me = oauth_session.get('account/verify_credentials.json',
                                params={'skip_status': 'true', 'include_email': 'true',
                                        'include_entites': 'false'}).json()
-        # logmessage("Twitter returned " + json.dumps(me))
         social_id = 'twitter$' + str(me.get('id_str'))
         username = me.get('screen_name')
         email = me.get('email')
