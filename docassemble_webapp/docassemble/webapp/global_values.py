@@ -11,7 +11,6 @@ import docassemble.webapp.machinelearning
 import docassemble.base.util
 import re
 import os
-import sys
 import shutil
 import stat
 from docassemble.webapp.files import SavedFile
@@ -62,7 +61,7 @@ def set_admin_interviews():
                         try:
                             interview = docassemble.base.interview_cache.get_interview(item['interview'])
                         except:
-                            sys.stderr.write(
+                            app.logger.error(
                                 "interview " + item['interview'] + " in administrative interviews did not exist" + "\n")
                             continue
                         if 'title' in item:
@@ -72,7 +71,7 @@ def set_admin_interviews():
                                                                             interview.consolidated_metadata.get('title',
                                                                                                                 None))
                             if the_title is None:
-                                sys.stderr.write(
+                                app.logger.error(
                                     "interview in administrative interviews needs to be given a title" + "\n")
                                 continue
                         admin_interview = AdminInterview()
@@ -85,12 +84,12 @@ def set_admin_interviews():
                                         fault = True
                                         break
                                 if fault:
-                                    sys.stderr.write(
+                                    app.logger.error(
                                         "title of administrative interviews item must be a string or a dictionary with keys and values that are strings" + "\n")
                                     continue
                             admin_interview.title = the_title
                         else:
-                            sys.stderr.write(
+                            app.logger.error(
                                 "title of administrative interviews item must be a string or a dictionary" + "\n")
                             continue
                         if 'required privileges' not in item:
@@ -126,7 +125,7 @@ def set_admin_interviews():
                             else:
                                 fault = True
                             if fault:
-                                sys.stderr.write(
+                                app.logger.error(
                                     "required privileges in administrative interviews item must be a list of strings" + "\n")
                                 admin_interview.roles = None
                             else:
@@ -139,11 +138,11 @@ def set_admin_interviews():
                                 admin_interview.require_login = bool(metadata['require login'])
                         admin_interviews.append(admin_interview)
                     else:
-                        sys.stderr.write("item in administrative interviews must contain a valid interview name" + "\n")
+                        app.logger.error("item in administrative interviews must contain a valid interview name" + "\n")
                 else:
-                    sys.stderr.write("item in administrative interviews is not a dict" + "\n")
+                    app.logger.error("item in administrative interviews is not a dict" + "\n")
         else:
-            sys.stderr.write("administrative interviews is not a list" + "\n")
+            app.logger.error("administrative interviews is not a list" + "\n")
     return admin_interviews
 
 
@@ -168,7 +167,7 @@ def copy_playground_modules():
             try:
                 shutil.rmtree(os.path.join(root_dir, d))
             except:
-                sys.stderr.write("copy_playground_modules: error deleting " + os.path.join(root_dir, d) + "\n")
+                app.logger.error("copy_playground_modules: error deleting " + os.path.join(root_dir, d) + "\n")
     devs = set()
     for user in db.session.execute(select(UserModel.id).join(UserRoles, UserModel.id == UserRoles.user_id).join(Role,
                                                                                                                 UserRoles.role_id == Role.id).where(
@@ -187,7 +186,7 @@ def copy_playground_modules():
                 try:
                     shutil.rmtree(local_dir)
                 except:
-                    sys.stderr.write("copy_playground_modules: error deleting " + local_dir + " before replacing it\n")
+                    app.logger.error("copy_playground_modules: error deleting " + local_dir + " before replacing it\n")
             os.makedirs(local_dir, exist_ok=True)
             for f in [f for f in os.listdir(mod_directory) if re.search(r'^[A-Za-z].*\.py$', f)]:
                 shutil.copyfile(os.path.join(mod_directory, f), os.path.join(local_dir, f))
@@ -260,7 +259,7 @@ def initialize():
                     assert isinstance(app.config['BOOTSTRAP_THEME'], str)
                 except:
                     app.config['BOOTSTRAP_THEME'] = None
-                    sys.stderr.write("error loading bootstrap theme\n")
+                    app.logger.error("error loading bootstrap theme\n")
             else:
                 app.config['BOOTSTRAP_THEME'] = None
             if 'global css' in daconfig:
@@ -270,7 +269,7 @@ def initialize():
                         assert isinstance(global_css_url, str)
                         global_css += "\n" + '    <link href="' + global_css_url + '" rel="stylesheet">'
                     except:
-                        sys.stderr.write("error loading global css: " + repr(fileref) + "\n")
+                        app.logger.error("error loading global css: " + repr(fileref) + "\n")
             if 'global javascript' in daconfig:
                 for fileref in daconfig['global javascript']:
                     try:
@@ -278,7 +277,7 @@ def initialize():
                         assert isinstance(global_js_url, str)
                         global_js += "\n" + '    <script src="' + global_js_url + '"></script>'
                     except:
-                        sys.stderr.write("error loading global js: " + repr(fileref) + "\n")
+                        app.logger.error("error loading global js: " + repr(fileref) + "\n")
             if 'raw global css' in daconfig and daconfig['raw global css']:
                 global_css += "\n" + str(daconfig['raw global css'])
             if 'raw global javascript' in daconfig and daconfig['raw global javascript']:
@@ -303,7 +302,7 @@ def initialize():
                         if daconfig['social'][key][subkey] is None:
                             del daconfig['social'][key][subkey]
             except:
-                sys.stderr.write("Error converting social image references")
+                app.logger.error("Error converting social image references")
             interviews_to_load = daconfig.get('preloaded interviews', None)
             if isinstance(interviews_to_load, list):
                 for yaml_filename in daconfig['preloaded interviews']:
@@ -316,7 +315,7 @@ def initialize():
                 try:
                     copy_playground_modules()
                 except Exception as err:
-                    sys.stderr.write(
+                    app.logger.error(
                         "There was an error copying the playground modules: " + err.__class__.__name__ + "\n")
                 write_pypirc()
                 release_lock('init' + hostname, 'init')
@@ -326,6 +325,6 @@ def initialize():
                 if os.path.isfile(macro_path) and os.path.getsize(macro_path) != 7167:
                     os.remove(macro_path)
             except Exception as err:
-                sys.stderr.write("Error was " + err.__class__.__name__ + ' ' + str(err) + "\n")
+                app.logger.error("Error was " + err.__class__.__name__ + ' ' + str(err) + "\n")
             fix_api_keys()
             import_necessary(url, url_root)

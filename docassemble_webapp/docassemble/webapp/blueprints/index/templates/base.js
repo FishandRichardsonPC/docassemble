@@ -1,5 +1,5 @@
 if (typeof ($) == 'undefined') {
-    let $ = jQuery.noConflict();
+    window.$ = jQuery.noConflict();
 }
 let daMapInfo = null;
 let daWhichButton = null;
@@ -73,7 +73,7 @@ Object.defineProperty(String.prototype, "daSprintf", {
         }
 
         return this.replace(
-            /%%|%([+\\-])?([^1-9])?(\\d+)?(\\.\\d+)?([deEfhHioQqs])/g,
+            /%%|%([+\-])?([^1-9])?(\d+)?(\.\d+)?([deEfhHioQqs])/g,
             function (match, sign, filler, scale, precision, type) {
                 let strOut, space, value;
                 let asNumber = false;
@@ -125,7 +125,7 @@ Object.defineProperty(String.prototype, "daSprintf", {
                     case "H":
                         // Octal or Hexagesimal integer notation
                         strOut =
-                            "\\\\" +
+                            "\\" +
                             (type === "o" ? "0" : type) +
                             parseInt(defaultNumber(value)).toString(type === "o" ? 8 : 16);
                         break;
@@ -199,7 +199,7 @@ function daGoToAnchor(target) {
     }
 }
 function dabtoa(str) {
-    return window.btoa(str).replace(/[\\n=]/g, '');
+    return window.btoa(str).replace(/[\n=]/g, '');
 }
 function daatob(str) {
     return window.atob(str);
@@ -247,7 +247,7 @@ function getField(fieldName, notInDiv) {
             let elem = daVarLookupSelect[fieldName][i].select;
             if (!$(elem).prop('disabled')) {
                 let showifParents = $(elem).parents(".dajsshowif,.dashowif");
-                if (showifParents.length == 0 || $(showifParents[0]).data("isVisible") == '1') {
+                if (showifParents.length === 0 || $(showifParents[0]).data("isVisible") === '1') {
                     if (notInDiv && $.contains(notInDiv, elem)) {
                         continue;
                     }
@@ -268,7 +268,7 @@ function getField(fieldName, notInDiv) {
     for (let i = 0; i < possibleElements.length; ++i) {
         if (!$(possibleElements[i]).prop('disabled')) {
             let showifParents = $(possibleElements[i]).parents(".dajsshowif,.dashowif");
-            if (showifParents.length == 0 || $(showifParents[0]).data("isVisible") == '1') {
+            if (showifParents.length === 0 || $(showifParents[0]).data("isVisible") == '1') {
                 if (notInDiv && $.contains(notInDiv, possibleElements[i])) {
                     continue;
                 }
@@ -285,7 +285,7 @@ function setField(fieldName, val) {
         console.log('setField: reference to non-existent field ' + fieldName);
         return;
     }
-    if ($(elem).attr('type') == "checkbox") {
+    if ($(elem).attr('type') === "checkbox") {
         if (val) {
             if ($(elem).prop('checked') != true) {
                 $(elem).prop('checked', true);
@@ -297,8 +297,8 @@ function setField(fieldName, val) {
                 $(elem).trigger('change');
             }
         }
-    } else if ($(elem).attr('type') == "radio") {
-        let fieldNameEscaped = $(elem).attr('name').replace(/(:|\.|\[|\]|,|=)/g, "\\\\$1");
+    } else if ($(elem).attr('type') === "radio") {
+        let fieldNameEscaped = $(elem).attr('name').replace(/([:.\[\],=])/g, "\\$1");
         let wasSet = false;
         $("input[name='" + fieldNameEscaped + "']").each(function () {
             if ($(this).val() == val) {
@@ -323,28 +323,25 @@ function setField(fieldName, val) {
 let daSetField = setField;
 function val(fieldName) {
     let elem = daGetField(fieldName);
+    let theVal = "";
     if (elem == null) {
         return null;
     }
-    if ($(elem).attr('type') == "checkbox") {
-        if ($(elem).prop('checked')) {
-            theVal = true;
-        } else {
-            theVal = false;
-        }
-    } else if ($(elem).attr('type') == "radio") {
-        let fieldNameEscaped = $(elem).attr('name').replace(/(:|\.|\[|\]|,|=)/g, "\\\\$1");
+    if ($(elem).attr('type') === "checkbox") {
+        theVal = !!$(elem).prop('checked');
+    } else if ($(elem).attr('type') === "radio") {
+        let fieldNameEscaped = $(elem).attr('name').replace(/(:|\.|\[|\]|,|=)/g, "\\$1");
         theVal = $("input[name='" + fieldNameEscaped + "']:checked").val();
         if (typeof (theVal) == 'undefined') {
             theVal = null;
         } else {
-            if (theVal == 'True') {
+            if (theVal === 'True') {
                 theVal = true;
-            } else if (theVal == 'False') {
+            } else if (theVal === 'False') {
                 theVal = false;
             }
         }
-    } else if ($(elem).prop('tagName') == "SELECT" && $(elem).hasClass('damultiselect') && daVarLookupSelect[fieldName]) {
+    } else if ($(elem).prop('tagName') === "SELECT" && $(elem).hasClass('damultiselect') && daVarLookupSelect[fieldName]) {
         let n = daVarLookupSelect[fieldName].length;
         for (let i = 0; i < n; ++i) {
             if (daVarLookupSelect[fieldName][i].select === elem) {
@@ -401,7 +398,7 @@ function flash(message, priority, clear) {
     }
     if (message != null) {
         $("#daflash").append(daSprintf(daNotificationMessage, priority, message));
-        if (priority == 'success') {
+        if (priority === 'success') {
             setTimeout(function () {
                 $("#daflash .alert-success").hide(300, function () {
                     $(this).remove();
@@ -547,38 +544,38 @@ function get_interview_variables(callback) {
 }
 let da_get_interview_variables = get_interview_variables;
 function daInformAbout(subject, chatMessage) {
-    if (subject in daInformed || (subject != 'chatmessage' && !daIsUser)) {
+    if (subject in daInformed || (subject !== 'chatmessage' && !daIsUser)) {
         return;
     }
-    if (daShowingHelp && subject != 'chatmessage') {
+    if (daShowingHelp && subject !== 'chatmessage') {
         daInformed[subject] = 1;
         daInformedChanged = true;
         return;
     }
-    if (daShowingHelp && subject == 'chatmessage') {
+    if (daShowingHelp && subject === 'chatmessage') {
         return;
     }
     let target;
     let message;
     let waitPeriod = 3000;
-    if (subject == 'chat') {
+    if (subject === 'chat') {
         target = "#daChatAvailable a";
         message = {{ word("Get help through live chat by clicking here.") | tojson }};
-    } else if (subject == 'chatmessage') {
+    } else if (subject === 'chatmessage') {
         target = "#daChatAvailable a";
         //message = {{ word("A chat message has arrived.") | tojson }};
         message = chatMessage;
-    } else if (subject == 'phone') {
+    } else if (subject === 'phone') {
         target = "#daPhoneAvailable a";
         message = {{ word("Click here to get help over the phone.") | tojson }};
     } else {
         return;
     }
-    if (subject != 'chatmessage') {
+    if (subject !== 'chatmessage') {
         daInformed[subject] = 1;
         daInformedChanged = true;
     }
-    if (subject == 'chatmessage') {
+    if (subject === 'chatmessage') {
         $(target).popover({
             "content": message,
             "placement": "bottom",
@@ -636,7 +633,7 @@ function daScrollChatFast() {
     let chatScroller = $("#daCorrespondence");
     if (chatScroller.length) {
         let height = chatScroller[0].scrollHeight;
-        if (height == 0) {
+        if (height === 0) {
             daNotYetScrolled = true;
             return;
         }
@@ -646,49 +643,52 @@ function daScrollChatFast() {
     }
 }
 function daSender() {
-    //console.log("daSender");
-    if ($("#daMessage").val().length) {
-        daSocket.emit('chatmessage', {data: $("#daMessage").val(), i: daYamlFilename});
-        $("#daMessage").val("");
-        $("#daMessage").focus();
+    const daMessage = $("#daMessage");
+    if (daMessage.val().length) {
+        daSocket.emit('chatmessage', {data:daMessage.val(), i: daYamlFilename});
+        daMessage.val("");
+        daMessage.focus();
     }
     return false;
 }
 function daShowControl(mode) {
-    if ($("body").hasClass("dacontrolled")) {
+    const body = $("body");
+    if (body.hasClass("dacontrolled")) {
         return;
     }
     $('input[type="submit"], button[type="submit"]').prop("disabled", true);
-    $("body").addClass("dacontrolled");
-    let newDiv = document.createElement('div');
-    $(newDiv).addClass("datop-alert col-xs-10 col-sm-7 col-md-6 col-lg-5 dacol-centered");
-    $(newDiv).html({{ word("Your screen is being controlled by an operator.") | tojson }})
-    $(newDiv).attr('id', "dacontrolAlert");
-    $(newDiv).css("display", "none");
-    $(newDiv).appendTo($(daTargetDiv));
-    if (mode == 'animated') {
-        $(newDiv).slideDown();
+    body.addClass("dacontrolled");
+    const newDiv = $(document.createElement('div'));
+    newDiv.addClass("datop-alert col-xs-10 col-sm-7 col-md-6 col-lg-5 dacol-centered");
+    newDiv.html({{ word("Your screen is being controlled by an operator.") | tojson }})
+    newDiv.attr('id', "dacontrolAlert");
+    newDiv.css("display", "none");
+    newDiv.appendTo($(daTargetDiv));
+    if (mode === 'animated') {
+        newDiv.slideDown();
     } else {
-        $(newDiv).show();
+        newDiv.show();
     }
 }
 function daHideControl() {
-    if (!$("body").hasClass("dacontrolled")) {
+    const body = $("body");
+    if (!body.hasClass("dacontrolled")) {
         return;
     }
     $('input[type="submit"], button[type="submit"]').prop("disabled", false);
-    $("body").removeClass("dacontrolled");
-    $("#dacontrolAlert").html({{ word("The operator is no longer controlling your screen.") | tojson }});
+    body.removeClass("dacontrolled");
+    const daControlAlert = $("#dacontrolAlert")
+    daControlAlert.html({{ word("The operator is no longer controlling your screen.") | tojson }});
     setTimeout(function () {
-        $("#dacontrolAlert").slideUp(300, function () {
-            $("#dacontrolAlert").remove();
+        daControlAlert.slideUp(300, function () {
+            daControlAlert.remove();
         });
     }, 2000);
 }
 function daInitializeSocket() {
     if (daSocket != null) {
         if (daSocket.connected) {
-            if (daChatStatus == 'ready') {
+            if (daChatStatus === 'ready') {
                 daSocket.emit('connectagain', {i: daYamlFilename});
             }
             if (daBeingControlled) {
@@ -718,8 +718,7 @@ function daInitializeSocket() {
                 console.log("Error: socket is null");
                 return;
             }
-            //console.log("Connected socket with sid " + daSocket.id);
-            if (daChatStatus == 'ready') {
+            if (daChatStatus === 'ready') {
                 daChatStatus = 'on';
                 daDisplayChat();
                 daPushChanges();
@@ -743,12 +742,7 @@ function daInitializeSocket() {
             }
             daScrollChatFast();
         });
-        daSocket.on('chatready', function (data) {
-            //let key = 'da:session:uid:' + data.uid + ':i:' + data.i + ':userid:' + data.userid
-            //console.log('chatready');
-        });
         daSocket.on('terminate', function () {
-            //console.log("interview: terminating socket");
             daSocket.disconnect();
         });
         daSocket.on('controllerstart', function () {
@@ -759,21 +753,14 @@ function daInitializeSocket() {
             daBeingControlled = false;
             //console.log("Hiding control 2");
             daHideControl();
-            if (daChatStatus != 'on') {
-                if (daSocket != null && daSocket.connected) {
+            if (daChatStatus !== 'on') {
+                if (daSocket !== null && daSocket.connected) {
                     //console.log('Terminating interview socket because control over');
                     daSocket.emit('terminate');
                 }
             }
         });
-        daSocket.on('disconnect', function () {
-            //console.log("Manual disconnect");
-            //daSocket.emit('manual_disconnect', {i: daYamlFilename});
-            //console.log("Disconnected socket");
-            //daSocket = null;
-        });
         daSocket.on('reconnected', function () {
-            //console.log("Reconnected");
             daChatStatus = 'on';
             daDisplayChat();
             daPushChanges();
@@ -804,50 +791,49 @@ function daInitializeSocket() {
             for (let i = 0; i < values.length; i++) {
                 valArray[values[i].name] = values[i].value;
             }
-            //console.log("valArray is " + JSON.stringify(valArray));
             $("#daform").each(function () {
                 $(this).find(':input').each(function () {
-                    let type = $(this).attr('type');
-                    let id = $(this).attr('id');
-                    let name = $(this).attr('name');
-                    if (type == 'checkbox') {
+                    const $this = $(this);
+                    let type = $this.attr('type');
+                    let name = $this.attr('name');
+                    if (type === 'checkbox') {
                         if (name in valArray) {
-                            if (valArray[name] == 'True') {
-                                if ($(this).prop('checked') != true) {
-                                    $(this).prop('checked', true);
-                                    $(this).trigger('change');
+                            if (valArray[name] === 'True') {
+                                if ($this.prop('checked') != true) {
+                                    $this.prop('checked', true);
+                                    $this.trigger('change');
                                 }
                             } else {
-                                if ($(this).prop('checked') != false) {
-                                    $(this).prop('checked', false);
-                                    $(this).trigger('change');
+                                if ($this.prop('checked') != false) {
+                                    $this.prop('checked', false);
+                                    $this.trigger('change');
                                 }
                             }
                         } else {
-                            if ($(this).prop('checked') != false) {
-                                $(this).prop('checked', false);
-                                $(this).trigger('change');
+                            if ($this.prop('checked') != false) {
+                                $this.prop('checked', false);
+                                $this.trigger('change');
                             }
                         }
                     } else if (type == 'radio') {
                         if (name in valArray) {
-                            if (valArray[name] == $(this).val()) {
-                                if ($(this).prop('checked') != true) {
-                                    $(this).prop('checked', true);
-                                    $(this).trigger('change');
+                            if (valArray[name] == $this.val()) {
+                                if ($this.prop('checked') != true) {
+                                    $this.prop('checked', true);
+                                    $this.trigger('change');
                                 }
                             } else {
-                                if ($(this).prop('checked') != false) {
-                                    $(this).prop('checked', false);
-                                    $(this).trigger('change');
+                                if ($this.prop('checked') != false) {
+                                    $this.prop('checked', false);
+                                    $this.trigger('change');
                                 }
                             }
                         }
-                    } else if ($(this).data().hasOwnProperty('sliderMax')) {
-                        $(this).slider('setValue', parseInt(valArray[name]));
+                    } else if ($this.data().hasOwnProperty('sliderMax')) {
+                        $this.slider('setValue', parseInt(valArray[name]));
                     } else {
                         if (name in valArray) {
-                            $(this).val(valArray[name]);
+                            $this.val(valArray[name]);
                         }
                     }
                 });
@@ -918,8 +904,7 @@ function daValidationHandler(form) {
     let visibleElements = [];
     let seen = Object();
     $(form).find("input, select, textarea").filter(":not(:disabled)").each(function () {
-        //console.log("Considering an element");
-        if ($(this).attr('name') && $(this).attr('type') != "hidden" && (($(this).hasClass('da-active-invisible') && $(this).parent().is(":visible")) || $(this).is(":visible"))) {
+        if ($(this).attr('name') && $(this).attr('type') !== "hidden" && (($(this).hasClass('da-active-invisible') && $(this).parent().is(":visible")) || $(this).is(":visible"))) {
             let theName = $(this).attr('name');
             //console.log("Including an element " + theName);
             if (!seen.hasOwnProperty(theName)) {
@@ -942,7 +927,7 @@ function daValidationHandler(form) {
     }, 1);
     if (daWhichButton != null) {
         $(".da-field-buttons .btn-da").each(function () {
-            if (this != daWhichButton) {
+            if (this !== daWhichButton) {
                 $(this).removeClass("{{ button_style }}primary {{ button_style }}info {{ button_style }}warning {{ button_style }}danger {{ button_style }}secondary");
                 $(this).addClass("{{ button_style }}light");
             }
@@ -1005,7 +990,7 @@ function daValidationHandler(form) {
     }
     $("select.damultiselect:not(:disabled)").each(function () {
         let showifParents = $(this).parents(".dajsshowif,.dashowif");
-        if (showifParents.length == 0 || $(showifParents[0]).data("isVisible") == '1') {
+        if (showifParents.length === 0 || $(showifParents[0]).data("isVisible") == '1') {
             $(this).find('option').each(function () {
                 $('<input>').attr({
                     type: 'hidden',
@@ -1049,7 +1034,7 @@ function daValidationHandler(form) {
         let inline_file_list = Array();
         let namesWithImages = Object();
         for (let i = 0; i < file_list.length; i++) {
-            let the_file_input = $('#' + file_list[i].replace(/(:|\.|\[|\]|,|=|\/|\")/g, '\\\\$1'))[0];
+            let the_file_input = $('#' + file_list[i].replace(/(:|\.|\[|]|,|=|\/|")/g, '\\$1'))[0];
             let the_max_size = $(the_file_input).data('maximagesize');
             let the_image_type = $(the_file_input).data('imagetype');
             let hasImages = false;
@@ -1076,7 +1061,7 @@ function daValidationHandler(form) {
         }
         if (inline_file_list.length > 0) {
             let originalFileList = atob($('input[name="_files"]').val())
-            if (newFileList.length == 0 && nullFileList.length == 0) {
+            if (newFileList.length === 0 && nullFileList.length === 0) {
                 $('input[name="_files"]').remove();
             } else {
                 $('input[name="_files"]').val(btoa(JSON_stringify(newFileList.concat(nullFileList))));
@@ -1085,7 +1070,7 @@ function daValidationHandler(form) {
                 fileArray.keys.push(inline_file_list[i])
                 fileArray.values[inline_file_list[i]] = Array()
                 let fileInfoList = fileArray.values[inline_file_list[i]];
-                let file_input = $('#' + inline_file_list[i].replace(/(:|\.|\[|\]|,|=|\/|\")/g, '\\\\$1'))[0];
+                let file_input = $('#' + inline_file_list[i].replace(/(:|\.|\[|\]|,|=|\/|\")/g, '\\$1'))[0];
                 let max_size;
                 let image_type;
                 let image_mime_type;
@@ -1096,9 +1081,9 @@ function daValidationHandler(form) {
                     image_type = $(file_input).data('imagetype');
                     image_mime_type = null;
                     if (image_type) {
-                        if (image_type == 'png') {
+                        if (image_type === 'png') {
                             image_mime_type = 'image/png';
-                        } else if (image_type == 'bmp') {
+                        } else if (image_type === 'bmp') {
                             image_mime_type = 'image/bmp';
                         } else {
                             image_mime_type = 'image/jpeg';
@@ -1112,7 +1097,7 @@ function daValidationHandler(form) {
                         let reader = new FileReader();
                         let thisFileInfo = {name: the_file.name, size: the_file.size, type: the_file.type};
                         fileInfoList.push(thisFileInfo);
-                        reader.onload = function (readerEvent) {
+                        reader.onload = function () {
                             if (has_images && the_file.type.match(/image.*/) && !(the_file.type.indexOf('image/svg') == 0)) {
                                 let convertedName = the_file.name;
                                 let convertedType = the_file.type;
@@ -1164,14 +1149,12 @@ function daValidationHandler(form) {
                 }
             }
         }
-        if (newFileList.length == 0) {
-            //$('input[name="_files"]').remove();
-        } else {
+        if (newFileList.length !== 0) {
             do_iframe_upload = true;
         }
     }
     if (inline_succeeded) {
-        return (false);
+        return false;
     }
     if (do_iframe_upload) {
         $("#dauploadiframe").remove();
@@ -1213,7 +1196,7 @@ function daValidationHandler(form) {
             }
         });
     }
-    return (false);
+    return false;
 }
 function daSignatureSubmit(event) {
     $(this).find("input[name='ajax']").val(1);
@@ -1238,13 +1221,13 @@ function daSignatureSubmit(event) {
     });
     event.preventDefault();
     event.stopPropagation();
-    return (false);
+    return false;
 }
 function JSON_stringify(s) {
     let json = JSON.stringify(s);
     return json.replace(/[\u007f-\uffff]/g,
         function (c) {
-            return '\\\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
+            return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
         }
     );
 }
@@ -1336,7 +1319,7 @@ $(document).on('keydown', function (e) {
             if (tag != "INPUT" && tag != "TEXTAREA" && tag != "A" && tag != "LABEL" && tag != "BUTTON") {
                 e.preventDefault();
                 e.stopPropagation();
-                if ($("#daform .da-field-buttons button").not('.danonsubmit').length == 1) {
+                if ($("#daform .da-field-buttons button").not('.danonsubmit').length === 1) {
                     $("#daform .da-field-buttons button").not('.danonsubmit').click();
                 }
                 return false;
@@ -1444,7 +1427,7 @@ function daProcessAjax(data, form, doScroll, actionURL) {
             }, data.reload_after);
         }
         daUpdateHeight();
-    } else if (data.action == 'redirect') {
+    } else if (data.action === 'redirect') {
         if (daSpinnerTimeout != null) {
             clearTimeout(daSpinnerTimeout);
             daSpinnerTimeout = null;
@@ -1453,11 +1436,11 @@ function daProcessAjax(data, form, doScroll, actionURL) {
             daHideSpinner();
         }
         window.location = data.url;
-    } else if (data.action == 'refresh') {
+    } else if (data.action === 'refresh') {
         daRefreshSubmit();
-    } else if (data.action == 'reload') {
+    } else if (data.action === 'reload') {
         location.reload(true);
-    } else if (data.action == 'resubmit') {
+    } else if (data.action === 'resubmit') {
         if (form == null) {
             window.location = actionURL;
         }
@@ -1555,12 +1538,12 @@ function daCloseChat() {
 //   //daStartCheckingIn();
 // }
 function daDisplayChat() {
-    if (daChatStatus == 'off' || daChatStatus == 'observeonly') {
+    if (daChatStatus === 'off' || daChatStatus === 'observeonly') {
         $("#daChatBox").addClass("dainvisible");
         $("#daChatAvailable").addClass("dainvisible");
         $("#daChatOnButton").addClass("dainvisible");
     } else {
-        if (daChatStatus == 'waiting') {
+        if (daChatStatus === 'waiting') {
             if (daChatPartnersAvailable > 0) {
                 $("#daChatBox").removeClass("dainvisible");
             }
@@ -1568,7 +1551,7 @@ function daDisplayChat() {
             $("#daChatBox").removeClass("dainvisible");
         }
     }
-    if (daChatStatus == 'waiting') {
+    if (daChatStatus === 'waiting') {
         //console.log("I see waiting")
         if (daChatHistory.length > 0) {
             $("#daChatAvailable a i").removeClass("da-chat-active");
@@ -1584,7 +1567,7 @@ function daDisplayChat() {
         $("#daMessage").prop('disabled', true);
         $("#daSend").prop('disabled', true);
     }
-    if (daChatStatus == 'standby' || daChatStatus == 'ready') {
+    if (daChatStatus === 'standby' || daChatStatus === 'ready') {
         //console.log("I see standby")
         $("#daChatAvailable").removeClass("dainvisible");
         $("#daChatAvailable a i").removeClass("da-chat-inactive");
@@ -1595,7 +1578,7 @@ function daDisplayChat() {
         $("#daSend").prop('disabled', true);
         daInformAbout('chat');
     }
-    if (daChatStatus == 'on') {
+    if (daChatStatus === 'on') {
         $("#daChatAvailable").removeClass("dainvisible");
         $("#daChatAvailable a i").removeClass("da-chat-inactive");
         $("#daChatAvailable a i").addClass("da-chat-active");
@@ -1611,7 +1594,7 @@ function daDisplayChat() {
     hideTablist();
 }
 function daChatLogCallback(data) {
-    if (data.action && data.action == 'reload') {
+    if (data.action && data.action === 'reload') {
         location.reload(true);
     }
     //console.log("daChatLogCallback: success is " + data.success);
@@ -1652,7 +1635,7 @@ function daResetCheckinCode() {
     daCheckinCode = Math.random();
 }
 function daCheckinCallback(data) {
-    if (data.action && data.action == 'reload') {
+    if (data.action && data.action === 'reload') {
         location.reload(true);
     }
     daCheckingIn = 0;
@@ -1727,7 +1710,7 @@ function daCheckinCallback(data) {
             daInformAbout('phone');
         }
         let statusChanged;
-        if (daChatStatus == data.chat_status) {
+        if (daChatStatus === data.chat_status) {
             statusChanged = false;
         } else {
             statusChanged = true;
@@ -1735,7 +1718,7 @@ function daCheckinCallback(data) {
         if (statusChanged) {
             daChatStatus = data.chat_status;
             daDisplayChat();
-            if (daChatStatus == 'ready') {
+            if (daChatStatus === 'ready') {
                 //console.log("calling initialize socket because ready");
                 daInitializeSocket();
             }
@@ -1767,7 +1750,7 @@ function daCheckinCallback(data) {
                 daBeingControlled = false;
                 //console.log("Hiding control 1");
                 daHideControl();
-                if (daChatStatus != 'on') {
+                if (daChatStatus !== 'on') {
                     if (daSocket != null && daSocket.connected) {
                         //console.log('Terminating interview socket because control is over');
                         daSocket.emit('terminate');
@@ -1794,7 +1777,8 @@ function daCheckin() {
         return;
     }
     let datastring;
-    if ((daChatStatus != 'off') && $("#daform").length > 0 && !daBeingControlled) { // daChatStatus == 'waiting' || daChatStatus == 'standby' || daChatStatus == 'ringing' || daChatStatus == 'ready' || daChatStatus == 'on' || daChatStatus == 'observeonly'
+    const daForm = $("#daform");
+    if ((daChatStatus !== 'off') && daForm.length > 0 && !daBeingControlled) {
         if (daDoAction != null) {
             datastring = $.param({
                 action: 'checkin',
@@ -1803,7 +1787,7 @@ function daCheckin() {
                 csrf_token: daCsrf,
                 checkinCode: daCheckinCode,
                 parameters: daFormAsJSON(),
-                raw_parameters: JSON.stringify($("#daform").serializeArray()),
+                raw_parameters: JSON.stringify(daForm.serializeArray()),
                 do_action: daDoAction,
                 ajax: '1'
             });
@@ -1815,7 +1799,7 @@ function daCheckin() {
                 csrf_token: daCsrf,
                 checkinCode: daCheckinCode,
                 parameters: daFormAsJSON(),
-                raw_parameters: JSON.stringify($("#daform").serializeArray()),
+                raw_parameters: JSON.stringify(daForm.serializeArray()),
                 ajax: '1'
             });
         }
@@ -2041,7 +2025,7 @@ function daFetchAjax(elem, cb, doShow) {
                     if (Array.isArray(data[i])) {
                         if (data[i].length >= 2) {
                             let item = $("<option>");
-                            if (notYetSelected && ((doShow && data[i][1].toString() == wordStart) || data[i][0].toString() == wordStart)) {
+                            if (notYetSelected && ((doShow && data[i][1].toString() === wordStart) || data[i][0].toString() === wordStart)) {
                                 item.prop('selected', true);
                                 notYetSelected = false;
                                 selectedValue = data[i][1]
@@ -2049,9 +2033,9 @@ function daFetchAjax(elem, cb, doShow) {
                             item.text(data[i][1]);
                             item.val(data[i][0]);
                             cb.$source.append(item);
-                        } else if (data[i].length == 1) {
+                        } else if (data[i].length === 1) {
                             let item = $("<option>");
-                            if (notYetSelected && ((doShow && data[i][0].toString() == wordStart) || data[i][0].toString() == wordStart)) {
+                            if (notYetSelected && ((doShow && data[i][0].toString() === wordStart) || data[i][0].toString() === wordStart)) {
                                 item.prop('selected', true);
                                 notYetSelected = false;
                                 selectedValue = data[i][0]
@@ -2064,7 +2048,7 @@ function daFetchAjax(elem, cb, doShow) {
                         for (let key in data[i]) {
                             if (data[i].hasOwnProperty(key)) {
                                 let item = $("<option>");
-                                if (notYetSelected && ((doShow && key.toString() == wordStart) || key.toString() == wordStart)) {
+                                if (notYetSelected && ((doShow && key.toString() === wordStart) || key.toString() === wordStart)) {
                                     item.prop('selected', true);
                                     notYetSelected = false;
                                     selectedValue = data[i][key];
@@ -2076,7 +2060,7 @@ function daFetchAjax(elem, cb, doShow) {
                         }
                     } else {
                         let item = $("<option>");
-                        if (notYetSelected && ((doShow && data[i].toString().toUpperCase() == upperWordStart) || data[i].toString() == wordStart)) {
+                        if (notYetSelected && ((doShow && data[i].toString().toUpperCase() == upperWordStart) || data[i].toString() === wordStart)) {
                             item.prop('selected', true);
                             notYetSelected = false;
                             selectedValue = data[i];
@@ -2096,7 +2080,7 @@ function daFetchAjax(elem, cb, doShow) {
                 keyList = keyList.sort();
                 for (let i = 0; i < keyList.length; ++i) {
                     let item = $("<option>");
-                    if (notYetSelected && ((doShow && keyList[i].toString().toUpperCase() == upperWordStart) || keyList[i].toString() == wordStart)) {
+                    if (notYetSelected && ((doShow && keyList[i].toString().toUpperCase() == upperWordStart) || keyList[i].toString() === wordStart)) {
                         item.prop('selected', true);
                         notYetSelected = false;
                         selectedValue = data[keyList[i]];
@@ -2140,7 +2124,7 @@ function daInitialize(doScroll) {
         let row = $(this).parents("tr").first();
         if ($(this).is(".datableup")) {
             let prev = row.prev();
-            if (prev.length == 0) {
+            if (prev.length === 0) {
                 return false;
             }
             row.addClass("datablehighlighted");
@@ -2149,7 +2133,7 @@ function daInitialize(doScroll) {
             }, 200);
         } else {
             let next = row.next();
-            if (next.length == 0) {
+            if (next.length === 0) {
                 return false;
             }
             row.addClass("datablehighlighted");
@@ -2162,8 +2146,9 @@ function daInitialize(doScroll) {
         }, 1000);
         return false;
     });
-    $(".dacollectextra").find('input, textarea, select').prop("disabled", true);
-    $(".dacollectextra").find('input.combobox').each(function () {
+    const collectExtra = $(".dacollectextra");
+    collectExtra.find('input, textarea, select').prop("disabled", true);
+    collectExtra.find('input.combobox').each(function () {
         daComboBoxes[$(this).attr('id')].disable();
     });
     $("#da-extra-collect").on('click', function () {
@@ -2389,12 +2374,9 @@ function daInitialize(doScroll) {
     $("a[data-embaction]").click(daEmbeddedAction);
     $("a[data-js]").click(daEmbeddedJs);
     $("a.da-review-action").click(daReviewAction);
-    $("input.dainput-embedded").on('keyup', daAdjustInputWidth);
-    $("input.dainput-embedded").each(daAdjustInputWidth);
-    let daPopoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-    let daPopoverList = daPopoverTriggerList.map(function (daPopoverTriggerEl) {
-        return new bootstrap.Popover(daPopoverTriggerEl, {trigger: {{ popover_trigger | tojson }}, html: true});
-    });
+    const embededInput = $("input.dainput-embedded");
+    embededInput.on('keyup', daAdjustInputWidth);
+    embededInput.each(daAdjustInputWidth);
     $('label a[data-bs-toggle="popover"]').on('click', function (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -2527,7 +2509,7 @@ function daInitialize(doScroll) {
             if (firstInput.length > 0 && $(firstInput).visible()) {
                 $(firstInput).focus();
                 let inputType = $(firstInput).attr('type');
-                if ($(firstInput).prop('tagName') != 'SELECT' && inputType != "checkbox" && inputType != "radio" && inputType != "hidden" && inputType != "submit" && inputType != "file" && inputType != "range" && inputType != "number" && inputType != "date" && inputType != "time") {
+                if ($(firstInput).prop('tagName') != 'SELECT' && inputType !== "checkbox" && inputType !== "radio" && inputType !== "hidden" && inputType !== "submit" && inputType !== "file" && inputType !== "range" && inputType !== "number" && inputType !== "date" && inputType !== "time") {
                     let strLength = $(firstInput).val().length * 2;
                     if (strLength > 0) {
                         try {
@@ -2629,8 +2611,8 @@ function daInitialize(doScroll) {
         }
     }
     if ($("input[name='_checkboxes']").length) {
-        let patt = new RegExp(/\[B['"][^\]]*['"]\]$/);
-        let pattRaw = new RegExp(/\[R['"][^\]]*['"]\]$/);
+        let patt = new RegExp(/\[B['"][^\]]*['"]]$/);
+        let pattRaw = new RegExp(/\[R['"][^\]]*['"]]$/);
         the_hash = $.parseJSON(atob($("input[name='_checkboxes']").val()));
         for (let key in the_hash) {
             if (the_hash.hasOwnProperty(key)) {
@@ -2641,8 +2623,8 @@ function daInitialize(doScroll) {
                     checkboxName = checkboxName.replace(/^.*\[B?['"]([^\]]*)['"]\]$/, "$1");
                     baseName = baseName.replace(/^(.*)\[.*/, "$1");
                     let transBaseName = baseName;
-                    if (($("[name='" + key + "']").length == 0) && (typeof daVarLookup[btoa(transBaseName).replace(/[\\n=]/g, '')] != "undefined")) {
-                        transBaseName = atob(daVarLookup[btoa(transBaseName).replace(/[\\n=]/g, '')]);
+                    if (($("[name='" + key + "']").length === 0) && (typeof daVarLookup[btoa(transBaseName).replace(/[\n=]/g, '')] != "undefined")) {
+                        transBaseName = atob(daVarLookup[btoa(transBaseName).replace(/[\n=]/g, '')]);
                     }
                     let convertedName;
                     try {
@@ -2650,9 +2632,9 @@ function daInitialize(doScroll) {
                     } catch (e) {
                         continue;
                     }
-                    let daNameOne = btoa(transBaseName + bracketPart).replace(/[\\n=]/g, '');
-                    let daNameTwo = btoa(baseName + "['" + convertedName + "']").replace(/[\\n=]/g, '');
-                    let daNameThree = btoa(baseName + '["' + convertedName + '"]').replace(/[\\n=]/g, '');
+                    let daNameOne = btoa(transBaseName + bracketPart).replace(/[\n=]/g, '');
+                    let daNameTwo = btoa(baseName + "['" + convertedName + "']").replace(/[\n=]/g, '');
+                    let daNameThree = btoa(baseName + '["' + convertedName + '"]').replace(/[\n=]/g, '');
                     daVarLookupRev[daNameOne] = daNameTwo;
                     daVarLookup[daNameTwo] = daNameOne;
                     daVarLookup[daNameThree] = daNameOne;
@@ -2673,8 +2655,8 @@ function daInitialize(doScroll) {
                     checkboxName = checkboxName.replace(/^.*\[R?['"]([^\]]*)['"]\]$/, "$1");
                     baseName = baseName.replace(/^(.*)\[.*/, "$1");
                     let transBaseName = baseName;
-                    if (($("[name='" + key + "']").length == 0) && (typeof daVarLookup[btoa(transBaseName).replace(/[\\n=]/g, '')] != "undefined")) {
-                        transBaseName = atob(daVarLookup[btoa(transBaseName).replace(/[\\n=]/g, '')]);
+                    if (($("[name='" + key + "']").length === 0) && (typeof daVarLookup[btoa(transBaseName).replace(/[\n=]/g, '')] != "undefined")) {
+                        transBaseName = atob(daVarLookup[btoa(transBaseName).replace(/[\n=]/g, '')]);
                     }
                     let convertedName;
                     try {
@@ -2682,8 +2664,8 @@ function daInitialize(doScroll) {
                     } catch (e) {
                         continue;
                     }
-                    let daNameOne = btoa(transBaseName + bracketPart).replace(/[\\n=]/g, '');
-                    let daNameTwo = btoa(baseName + "[" + convertedName + "]").replace(/[\\n=]/g, '')
+                    let daNameOne = btoa(transBaseName + bracketPart).replace(/[\n=]/g, '');
+                    let daNameTwo = btoa(baseName + "[" + convertedName + "]").replace(/[\n=]/g, '')
                     daVarLookupRev[daNameOne] = daNameTwo;
                     daVarLookup[daNameTwo] = daNameOne;
                     if (!daVarLookupRevMulti.hasOwnProperty(daNameOne)) {
@@ -2714,8 +2696,8 @@ function daInitialize(doScroll) {
         let n = jsInfo['vars'].length;
         for (let i = 0; i < n; ++i) {
             let showIfVars = [];
-            let initShowIfVar = btoa(jsInfo['vars'][i]).replace(/[\\n=]/g, '');
-            let initShowIfVarEscaped = initShowIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\\\$1");
+            let initShowIfVar = btoa(jsInfo['vars'][i]).replace(/[\n=]/g, '');
+            let initShowIfVarEscaped = initShowIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\$1");
             let elem = $("[name='" + initShowIfVarEscaped + "']");
             if (elem.length > 0) {
                 showIfVars.push(initShowIfVar);
@@ -2723,19 +2705,19 @@ function daInitialize(doScroll) {
             if (daVarLookupMulti.hasOwnProperty(initShowIfVar)) {
                 for (let j = 0; j < daVarLookupMulti[initShowIfVar].length; j++) {
                     let altShowIfVar = daVarLookupMulti[initShowIfVar][j];
-                    let altShowIfVarEscaped = altShowIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\\\$1");
+                    let altShowIfVarEscaped = altShowIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\$1");
                     let altElem = $("[name='" + altShowIfVarEscaped + "']");
                     if (altElem.length > 0 && !$.contains(this, altElem[0])) {
                         showIfVars.push(altShowIfVar);
                     }
                 }
             }
-            if (showIfVars.length == 0) {
+            if (showIfVars.length === 0) {
                 console.log("ERROR: reference to non-existent field " + jsInfo['vars'][i]);
             }
             for (let j = 0; j < showIfVars.length; ++j) {
                 let showIfVar = showIfVars[j];
-                let showIfVarEscaped = showIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\\\$1");
+                let showIfVarEscaped = showIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\$1");
                 let showHideDiv = function (speed) {
                     let elem = daGetField(jsInfo['vars'][i]);
                     if (elem != null && !$(elem).parents('.da-form-group').first().is($(this).parents('.da-form-group').first())) {
@@ -2830,7 +2812,7 @@ function daInitialize(doScroll) {
         let showIfMode = parseInt($(this).data('showif-mode'));
         let initShowIfVar = $(this).data('showif-let');
         let varName = atob(initShowIfVar);
-        let initShowIfVarEscaped = initShowIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\\\$1");
+        let initShowIfVarEscaped = initShowIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\$1");
         let elem = $("[name='" + initShowIfVarEscaped + "']");
         if (elem.length > 0) {
             showIfVars.push(initShowIfVar);
@@ -2839,7 +2821,7 @@ function daInitialize(doScroll) {
             let n = daVarLookupMulti[initShowIfVar].length;
             for (let i = 0; i < n; i++) {
                 let altShowIfVar = daVarLookupMulti[initShowIfVar][i];
-                let altShowIfVarEscaped = altShowIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\\\$1");
+                let altShowIfVarEscaped = altShowIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\$1");
                 let altElem = $("[name='" + altShowIfVarEscaped + "']");
                 if (altElem.length > 0 && !$.contains(this, altElem[0])) {
                     showIfVars.push(altShowIfVar);
@@ -2852,7 +2834,7 @@ function daInitialize(doScroll) {
         let n = showIfVars.length;
         for (let i = 0; i < n; ++i) {
             let showIfVar = showIfVars[i];
-            let showIfVarEscaped = showIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\\\$1");
+            let showIfVarEscaped = showIfVar.replace(/(:|\.|\[|\]|,|=)/g, "\\$1");
             let showHideDiv = function (speed) {
                 let elem = daGetField(varName, showIfDiv);
                 if (elem != null && !$(elem).parents('.da-form-group').first().is($(this).parents('.da-form-group').first())) {
@@ -2863,13 +2845,13 @@ function daInitialize(doScroll) {
                 if (showifParents.length !== 0 && !($(showifParents[0]).data("isVisible") == '1')) {
                     theVal = '';
                     //console.log("Setting theVal to blank.");
-                } else if ($(this).attr('type') == "checkbox") {
+                } else if ($(this).attr('type') === "checkbox") {
                     theVal = $("input[name='" + showIfVarEscaped + "']:checked").val();
                     if (typeof (theVal) == 'undefined') {
                         //console.log('manually setting checkbox value to False');
                         theVal = 'False';
                     }
-                } else if ($(this).attr('type') == "radio") {
+                } else if ($(this).attr('type') === "radio") {
                     theVal = $("input[name='" + showIfVarEscaped + "']:checked").val();
                     if (typeof (theVal) == 'undefined') {
                         theVal = '';
@@ -3020,14 +3002,14 @@ function daInitialize(doScroll) {
     if (daChatAvailable == 'observeonly') {
         daChatStatus = 'observeonly';
     }
-    if ((daChatStatus == 'off' || daChatStatus == 'observeonly') && daChatAvailable == 'available') {
+    if ((daChatStatus === 'off' || daChatStatus === 'observeonly') && daChatAvailable == 'available') {
         daChatStatus = 'waiting';
     }
     daDisplayChat();
     if (daBeingControlled) {
         daShowControl('fast');
     }
-    if (daChatStatus == 'ready' || daBeingControlled) {
+    if (daChatStatus === 'ready' || daBeingControlled) {
         daInitializeSocket();
     }
     if (daInitialized == false && daCheckinSeconds > 0) { // why was this set to always retrieve the chat log?
@@ -3053,7 +3035,7 @@ function daInitialize(doScroll) {
             daPublishMessage(daChatHistory[i]);
         }
     }
-    if (daChatStatus != 'off') {
+    if (daChatStatus !== 'off') {
         daSendChanges = true;
     } else {
         if (daDoAction == null) {
@@ -3232,7 +3214,7 @@ $.validator.addMethod("ajaxrequired", function (value, element, params) {
     if (!$(realElement).parent().is(":visible")) {
         return true;
     }
-    if (realValue == null || realValue.replace(/\s/g, '') == '') {
+    if (realValue == null || realValue.replace(/\s/g, '') === '') {
         return false;
     }
     return true;
@@ -3247,7 +3229,7 @@ $.validator.addMethod('checkone', function (value, element, params) {
     }
 });
 $.validator.addMethod('checkatleast', function (value, element, params) {
-    if ($(element).attr('name') != '_ignore' + params[0]) {
+    if ($(element).attr('name') !== '_ignore' + params[0]) {
         return true;
     }
     if ($('.dafield' + params[0] + ':checked').length >= params[1]) {
@@ -3257,7 +3239,7 @@ $.validator.addMethod('checkatleast', function (value, element, params) {
     }
 });
 $.validator.addMethod('checkatmost', function (value, element, params) {
-    if ($(element).attr('name') != '_ignore' + params[0]) {
+    if ($(element).attr('name') !== '_ignore' + params[0]) {
         return true;
     }
     if ($('.dafield' + params[0] + ':checked').length > params[1]) {
@@ -3267,17 +3249,17 @@ $.validator.addMethod('checkatmost', function (value, element, params) {
     }
 });
 $.validator.addMethod('checkexactly', function (value, element, params) {
-    if ($(element).attr('name') != '_ignore' + params[0]) {
+    if ($(element).attr('name') !== '_ignore' + params[0]) {
         return true;
     }
-    if ($('.dafield' + params[0] + ':checked').length != params[1]) {
+    if ($('.dafield' + params[0] + ':checked').length !== params[1]) {
         return false;
     } else {
         return true;
     }
 });
 $.validator.addMethod('selectexactly', function (value, element, params) {
-    if ($(element).find('option:selected').length == params[0]) {
+    if ($(element).find('option:selected').length === params[0]) {
         return true;
     } else {
         return false;
@@ -3342,7 +3324,7 @@ $.validator.addMethod('maxuploadsize', function (value, element, param) {
             if (element.files && element.files.length) {
                 let totalSize = 0;
                 for (i = 0; i < element.files.length; i++) {
-                    if (maxImageSize > 0 && element.files[i].size > (0.20 * maxImageSize) && element.files[i].type.match(/image.*/) && !(element.files[i].type.indexOf('image/svg') == 0)) {
+                    if (maxImageSize > 0 && element.files[i].size > (0.20 * maxImageSize) && element.files[i].type.match(/image.*/) && !(element.files[i].type.indexOf('image/svg') === 0)) {
                         totalSize += maxImageSize;
                     } else {
                         totalSize += element.files[i].size;
