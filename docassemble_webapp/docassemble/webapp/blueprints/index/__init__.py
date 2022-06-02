@@ -139,49 +139,18 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
         inverse = 'navbar-dark bg-dark '
     else:
         inverse = 'navbar-light bg-light '
+    fixed_top = ''
     if 'jsembed' in docassemble.base.functions.this_thread.misc:
         fixed_top = ''
     else:
         fixed_top = ' fixed-top'
     if extra_class is not None:
         fixed_top += ' ' + extra_class
-    navbar = """\
-    <div class="navbar""" + fixed_top + """ navbar-expand-md """ + inverse + '"' + """ role="banner">
-      <div class="container danavcontainer justify-content-start">
-"""
-    if status.question.can_go_back and steps > 1:
-        if status.question.interview.navigation_back_button:
-            navbar += """\
-        <form style="display: inline-block" id="dabackbutton" method="POST" action=""" + json.dumps(
-                url_for('index.index',
-                        **index_params)) + """><input type="hidden" name="csrf_token" value=""" + '"' + generate_csrf() + '"' + """/><input type="hidden" name="_back_one" value="1"/><button class="navbar-brand navbar-nav dabackicon dabackbuttoncolor me-3" type="submit" title=""" + json.dumps(
-                word(
-                    "Go back to the previous question")) + """><span class="nav-link"><i class="fas fa-chevron-left"></i><span class="daback">""" + status.cornerback + """</span></span></button></form>
-"""
-        else:
-            navbar += """\
-        <form hidden style="display: inline-block" id="dabackbutton" method="POST" action=""" + json.dumps(
-                url_for('index.index',
-                        **index_params)) + """><input type="hidden" name="csrf_token" value=""" + '"' + generate_csrf() + '"' + """/><input type="hidden" name="_back_one" value="1"/></form>
-"""
-    if status.title_url:
-        if str(status.title_url_opens_in_other_window) == 'False':
-            target = ''
-        else:
-            target = ' target="_blank"'
-        navbar += """\
-        <a id="dapagetitle" class="navbar-brand danavbar-title dapointer" href=""" + '"' + status.title_url + '"' + target + """><span class="d-none d-md-block">""" + status.display_title + """</span><span class="d-block d-md-none">""" + status.display_short_title + """</span></a>
-"""
-    else:
-        navbar += """\
-        <span id="dapagetitle" class="navbar-brand danavbar-title"><span class="d-none d-md-block">""" + status.display_title + """</span><span class="d-block d-md-none">""" + status.display_short_title + """</span></span>
-"""
-    help_message = word("Help is available")
-    help_label = None
     if status.question.interview.question_help_button:
         the_sections = status.interviewHelpText
     else:
         the_sections = status.helpText + status.interviewHelpText
+    help_label = None
     for help_section in the_sections:
         if help_section['label']:
             help_label = help_section['label']
@@ -190,45 +159,7 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
         help_label = status.extras.get('help label text', None)
     if help_label is None:
         help_label = status.question.help()
-    extra_help_message = word("Help is available for this question")
-    phone_sr = word("Phone help")
-    phone_message = word("Phone help is available")
-    chat_sr = word("Live chat")
-    source_message = word("Information for the developer")
-    if debug_mode:
-        source_button = '<div class="nav-item navbar-nav d-none d-md-block"><button class="btn btn-link nav-link da-no-outline" title=' + json.dumps(
-            source_message) + ' id="dasourcetoggle" data-bs-toggle="collapse" data-bs-target="#dasource"><i class="fas fa-code"></i></button></div>'
-        source_menu_item = '<a class="dropdown-item d-block d-md-none navbar" title=' + json.dumps(
-            source_message) + ' href="#dasource" data-bs-toggle="collapse" aria-expanded="false" aria-controls="source">' + word(
-            'Source') + '</a>'
-    else:
-        source_button = ''
-        source_menu_item = ''
-    hidden_question_button = '<li class="nav-item visually-hidden-focusable"><button class="btn btn-link nav-link active da-no-outline" id="daquestionlabel" data-bs-toggle="tab" data-bs-target="#daquestion">' + word(
-        'Question') + '</button></li>'
-    navbar += '        ' + source_button + '<ul id="nav-bar-tab-list" class="nav navbar-nav damynavbar-right" role="tablist">' + hidden_question_button
-    if len(status.interviewHelpText) > 0 or (
-            len(status.helpText) > 0 and not status.question.interview.question_help_button):
-        if status.question.helptext is None or status.question.interview.question_help_button:
-            navbar += '<li class="nav-item" role="presentation"><button class="btn btn-link nav-link dahelptrigger da-no-outline" data-bs-target="#dahelp" data-bs-toggle="tab" role="tab" id="dahelptoggle" title=' + json.dumps(
-                help_message) + '>' + help_label + '</button></li>'
-        else:
-            navbar += '<li class="nav-item" role="presentation"><button class="btn btn-link nav-link dahelptrigger da-no-outline daactivetext" data-bs-target="#dahelp" data-bs-toggle="tab" role="tab" id="dahelptoggle" title=' + json.dumps(
-                extra_help_message) + '>' + help_label + ' <i class="fas fa-star"></i></button></li>'
-    else:
-        navbar += '<li hidden class="nav-item dainvisible" role="presentation"><button class="btn btn-link nav-link dahelptrigger da-no-outline" id="dahelptoggle" data-bs-target="#dahelp" data-bs-toggle="tab" role="tab">' + word(
-            'Help') + '</button></li>'
-    navbar += '<li hidden class="nav-item dainvisible" id="daPhoneAvailable"><button data-bs-target="#dahelp" data-bs-toggle="tab" role="tab" title=' + json.dumps(
-        phone_message) + ' class="btn btn-link nav-link dapointer dahelptrigger da-no-outline"><i class="fas fa-phone da-chat-active"></i><span class="visually-hidden">' + phone_sr + '</span></button></li>' + \
-              '<li class="nav-item dainvisible" id="daChatAvailable"><button data-bs-target="#dahelp" data-bs-toggle="tab" class="btn btn-link nav-link dapointer dahelptrigger da-no-outline"><i class="fas fa-comment-alt"></i><span class="visually-hidden">' + chat_sr + '</span></button></li></ul>'
-    navbar += """
-        <button id="damobile-toggler" type="button" class="navbar-toggler ms-auto" data-bs-toggle="collapse" data-bs-target="#danavbar-collapse">
-          <span class="navbar-toggler-icon"></span><span class="visually-hidden">""" + word("Display the menu") + """</span>
-        </button>
-        <div class="collapse navbar-collapse" id="danavbar-collapse">
-          <ul class="navbar-nav ms-auto">
-"""
-    navbar += status.nav_item
+
     if 'menu_items' in status.extras:
         if not isinstance(status.extras['menu_items'], list):
             custom_menu = '<a tabindex="-1" class="dropdown-item">' + word(
@@ -258,118 +189,58 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
             custom_menu = False
     else:
         custom_menu = False
-    if ALLOW_REGISTRATION:
-        sign_in_text = word('Sign in or sign up to save answers')
-    else:
-        sign_in_text = word('Sign in to save answers')
     if daconfig.get('resume interview after login', False):
         login_url = url_for('user.login', next=url_for('index.index', **index_params))
     else:
         login_url = url_for('user.login')
-    if show_login:
-        if current_user.is_anonymous:
-            if custom_menu:
-                navbar += '            <li class="nav-item dropdown"><a href="#" class="nav-link dropdown-toggle d-none d-md-block" data-bs-toggle="dropdown" role="button" id="damenuLabel" aria-haspopup="true" aria-expanded="false">' + word(
-                    "Menu") + '</a><div class="dropdown-menu dropdown-menu-end" aria-labelledby="damenuLabel">' + custom_menu + '<a class="dropdown-item" href="' + login_url + '">' + sign_in_text + '</a></div></li>'
-            else:
-                if daconfig.get('login link style', 'normal') == 'button':
-                    if ALLOW_REGISTRATION:
-                        if daconfig.get('resume interview after login', False):
-                            register_url = url_for('user.register', next=url_for('index.index', **index_params))
-                        else:
-                            register_url = url_for('user.register')
-                        navbar += '            <li class="nav-item"><a class="nav-link" href="' + register_url + '">' + word(
-                            'Sign up') + '</a></li>'
-                        navbar += '            <li class="nav-item"><a class="nav-link d-block d-md-none" href="' + login_url + '">' + word(
-                            'Sign in') + '</a>'
 
-                else:
-                    navbar += '            <li class="nav-item"><a class="nav-link" href="' + login_url + '">' + sign_in_text + '</a></li>'
-        else:
-            if (custom_menu is False or custom_menu == '') and status.question.interview.options.get(
-                    'hide standard menu', False):
-                navbar += '            <li class="nav-item"><a class="nav-link" tabindex="-1">' + (
-                    current_user.email if current_user.email else re.sub(r'.*\$', '',
-                                                                         current_user.social_id)) + '</a></li>'
-            else:
-                navbar += '            <li class="nav-item dropdown"><a class="nav-link dropdown-toggle d-none d-md-block" href="#" data-bs-toggle="dropdown" role="button" id="damenuLabel" aria-haspopup="true" aria-expanded="false">' + (
-                    current_user.email if current_user.email else re.sub(r'.*\$', '',
-                                                                         current_user.social_id)) + '</a><div class="dropdown-menu dropdown-menu-end" aria-labelledby="damenuLabel">'
-                if custom_menu:
-                    navbar += custom_menu
-                if not status.question.interview.options.get('hide standard menu', False):
-                    if current_user.has_role('admin', 'developer'):
-                        navbar += source_menu_item
-                    if current_user.has_role('admin', 'advocate') and current_app.config['ENABLE_MONITOR']:
-                        navbar += '<a class="dropdown-item" href="' + url_for('monitor') + '">' + word(
-                            'Monitor') + '</a>'
-                    if current_user.has_role('admin', 'developer', 'trainer'):
-                        navbar += '<a class="dropdown-item" href="' + url_for('train') + '">' + word('Train') + '</a>'
-                    if current_user.has_role('admin', 'developer'):
-                        if current_app.config['ALLOW_UPDATES']:
-                            navbar += '<a class="dropdown-item" href="' + url_for('admin.update_package') + '">' + word(
-                                'Package Management') + '</a>'
-                        navbar += '<a class="dropdown-item" href="' + url_for('admin.logs') + '">' + word(
-                            'Logs') + '</a>'
-                        if current_app.config['ENABLE_PLAYGROUND']:
-                            navbar += '<a class="dropdown-item" href="' + url_for(
-                                'playground.playground_page') + '">' + word(
-                                'Playground') + '</a>'
-                        navbar += '<a class="dropdown-item" href="' + url_for('utilities') + '">' + word(
-                            'Utilities') + '</a>'
-                    if current_user.has_role('admin', 'advocate') or current_user.can_do('access_user_info'):
-                        navbar += '<a class="dropdown-item" href="' + url_for('user_list') + '">' + word(
-                            'User List') + '</a>'
-                    if current_user.has_role('admin'):
-                        navbar += '<a class="dropdown-item" href="' + url_for('config_page') + '">' + word(
-                            'Configuration') + '</a>'
-                    if current_app.config['SHOW_DISPATCH']:
-                        navbar += '<a class="dropdown-item" href="' + url_for(
-                            'interview.interview_start') + '">' + word(
-                            'Available Interviews') + '</a>'
-                    for item in current_app.config['ADMIN_INTERVIEWS']:
-                        if item.can_use() and docassemble.base.functions.this_thread.current_info.get('yaml_filename',
-                                                                                                      '') != item.interview:
-                            navbar += '<a class="dropdown-item" href="' + url_for('index.index', i=item.interview,
-                                                                                  new_session='1') + '">' + item.get_title(
-                                docassemble.base.functions.get_language()) + '</a>'
-                    if current_app.config['SHOW_MY_INTERVIEWS'] or current_user.has_role('admin'):
-                        navbar += '<a class="dropdown-item" href="' + url_for('interview.interview_list') + '">' + word(
-                            'My Interviews') + '</a>'
-                    if current_user.has_role('admin', 'developer'):
-                        navbar += '<a class="dropdown-item" href="' + url_for('user_profile_page') + '">' + word(
-                            'Profile') + '</a>'
-                    else:
-                        if current_app.config['SHOW_PROFILE'] or current_user.has_role('admin'):
-                            navbar += '<a class="dropdown-item" href="' + url_for('user_profile_page') + '">' + word(
-                                'Profile') + '</a>'
-                        else:
-                            navbar += '<a class="dropdown-item" href="' + url_for('user.change_password') + '">' + word(
-                                'Change Password') + '</a>'
-                    navbar += '<a class="dropdown-item" href="' + url_for('user.logout') + '">' + word(
-                        'Sign Out') + '</a>'
-                navbar += '</div></li>'
+    if ALLOW_REGISTRATION:
+        sign_in_text = word('Sign in or sign up to save answers')
     else:
-        if custom_menu:
-            navbar += '            <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" class="dropdown-toggle d-none d-md-block" data-bs-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">' + word(
-                "Menu") + '</a><div class="dropdown-menu dropdown-menu-end">' + custom_menu
-            if not status.question.interview.options.get('hide standard menu', False):
-                navbar += '<a class="dropdown-item" href="' + exit_href(status) + '">' + status.exit_label + '</a>'
-            navbar += '</div></li>'
-        else:
-            navbar += '            <li class="nav-item"><a class="nav-link" href="' + exit_href(
-                status) + '">' + status.exit_label + '</a></li>'
-    navbar += """
-          </ul>"""
-    if daconfig.get('login link style',
-                    'normal') == 'button' and show_login and current_user.is_anonymous and not custom_menu:
-        navbar += '\n          <a class="btn btn-' + BUTTON_COLOR_NAV_LOGIN + ' btn-sm mb-0 ms-3 d-none d-md-block" href="' + login_url + '">' + word(
-            'Sign in') + '</a>'
-    navbar += """
-        </div>
-      </div>
-    </div>
-"""
+        sign_in_text = word('Sign in to save answers')
+    navbar = render_template(
+        "navbar.html",
+        fixed_top=fixed_top,
+        inverse=inverse,
+        can_go_back=status.question.can_go_back,
+        steps=steps,
+        index_url=url_for('index.index', **index_params),
+        csrf_token=generate_csrf(),
+        corner_back=status.cornerback,
+        title_url=status.title_url,
+        title_url_opens_in_other_window=not (str(status.title_url_opens_in_other_window) == 'False'),
+        display_title=status.display_title,
+        display_short_title=status.display_short_title,
+        interview_help_text=status.interviewHelpText,
+        help_text=status.helpText,
+        help_label=help_label,
+        question_help_button=status.question.interview.question_help_button,
+        question_help_text=status.question.helptext,
+        debug_mode=debug_mode,
+        nav_item=status.nav_item,
+        current_user=current_user,
+                show_login=show_login,
+        custom_menu=custom_menu,
+        login_url=login_url,
+        sign_in_text=sign_in_text,
+        resume_after_login=daconfig.get('resume interview after login', False),
+        login_style=daconfig.get('login link style', 'normal'),
+        ALLOW_REGISTRATION=ALLOW_REGISTRATION,
+        hide_standard_menu=status.question.interview.options.get('hide standard menu', False),
+        user_link_text=(current_user.email if current_user.email else re.sub(r'.*\$', '', current_user.social_id)),
+        ENABLE_MONITOR=current_app.config['ENABLE_MONITOR'],
+        ALLOW_UPDATES=current_app.config['ALLOW_UPDATES'],
+        SHOW_DISPATCH=current_app.config['SHOW_DISPATCH'],
+        ADMIN_INTERVIEWS=current_app.config['ADMIN_INTERVIEWS'],
+        yaml_filename=docassemble.base.functions.this_thread.current_info.get('yaml_filename', ''),
+        language=docassemble.base.functions.get_language(),
+        SHOW_MY_INTERVIEWS=current_app.config['SHOW_MY_INTERVIEWS'],
+        exit_href=exit_href,
+        BUTTON_COLOR_NAV_LOGIN=BUTTON_COLOR_NAV_LOGIN
+    )
+
+
+
     return navbar
 
 
@@ -728,7 +599,7 @@ def index(action_argument=None, refer=None):
         except:
             current_app.logger.error("index: there was an exception " + str(
                 the_err.__class__.__name__) + " after fetch_user_dict with %s and %s, so we need to reset\n" % (
-                                 user_code, yaml_filename))
+                                         user_code, yaml_filename))
         release_lock(user_code, yaml_filename)
         logmessage("index: dictionary fetch failed")
         clear_session(yaml_filename)
@@ -745,8 +616,9 @@ def index(action_argument=None, refer=None):
             flash(word("Unable to retrieve interview session.  Starting a new session instead."), "error")
         return response
     if user_dict is None:
-        current_app.logger.error("index: no user_dict found after fetch_user_dict with %s and %s, so we need to reset\n" % (
-            user_code, yaml_filename))
+        current_app.logger.error(
+            "index: no user_dict found after fetch_user_dict with %s and %s, so we need to reset\n" % (
+                user_code, yaml_filename))
         release_lock(user_code, yaml_filename)
         logmessage("index: dictionary fetch returned no results")
         clear_session(yaml_filename)
@@ -1147,7 +1019,8 @@ def index(action_argument=None, refer=None):
                 changed = True
             except Exception as errMess:
                 try:
-                    current_app.logger.error(errMess.__class__.__name__ + ": " + str(errMess) + " after running " + the_string)
+                    current_app.logger.error(
+                        errMess.__class__.__name__ + ": " + str(errMess) + " after running " + the_string)
                 except:
                     pass
                 error_messages.append(("error", "Error: " + errMess.__class__.__name__ + ": " + str(errMess)))
@@ -2586,10 +2459,12 @@ def index(action_argument=None, refer=None):
             debug_readability_question=debug_readability_question,
             button_style=current_app.config['BUTTON_STYLE'],
             ROOT=ROOT,
-            forceFullScreen=interview.force_fullscreen is True or (re.search(r'mobile', str(interview.force_fullscreen).lower()) and is_mobile_or_tablet()),
+            forceFullScreen=interview.force_fullscreen is True or (
+                    re.search(r'mobile', str(interview.force_fullscreen).lower()) and is_mobile_or_tablet()),
             custom_data_types=interview.custom_data_types,
             custom_types=docassemble.base.functions.custom_types,
-            question_data=interview_status.as_data(user_dict) if interview.options.get('send question data', False) else None,
+            question_data=interview_status.as_data(user_dict) if interview.options.get('send question data',
+                                                                                       False) else None,
             popover_trigger=interview.options.get('popover trigger', 'focus'),
             chat_available=chat_available,
             message_log=safeid(json.dumps(docassemble.base.functions.get_message_log()))
