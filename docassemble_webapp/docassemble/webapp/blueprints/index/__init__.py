@@ -53,7 +53,6 @@ from docassemble.webapp.core.models import MachineLearning, SpeakList
 from docassemble.webapp.daredis import r
 from docassemble.webapp.db_object import db
 from docassemble.webapp.files import SavedFile, get_ext_and_mimetype
-from docassemble.webapp.global_values import global_css, global_js
 from docassemble.webapp.lock import obtain_lock, release_lock
 from docassemble.webapp.package import get_url_from_file_reference
 from docassemble.webapp.page_values import additional_css, additional_scripts, exit_href, navigation_bar, \
@@ -219,7 +218,7 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
         debug_mode=debug_mode,
         nav_item=status.nav_item,
         current_user=current_user,
-                show_login=show_login,
+        show_login=show_login,
         custom_menu=custom_menu,
         login_url=login_url,
         sign_in_text=sign_in_text,
@@ -2735,7 +2734,7 @@ def index(action_argument=None, refer=None):
                     start_output += "\n" + '    <link href="' + the_url + '" rel="stylesheet">'
                 else:
                     logmessage("index: could not find css file " + str(fileref))
-        start_output += global_css + additional_css(interview_status)
+        start_output += current_app.config['GLOBAL_CSS'] + additional_css(interview_status)
         if is_js:
             append_javascript += additional_css(interview_status, js_only=True)
         start_output += '\n    <title>' + interview_status.tabtitle + '</title>\n  </head>\n  <body class="' + bodyclass + '">\n  <div id="dabody">\n'
@@ -2837,11 +2836,11 @@ def index(action_argument=None, refer=None):
     </footer>
 """
     if not is_ajax:
-        end_output = scripts + global_js + "\n" + indent_by("".join(interview_status.extra_scripts).strip(),
+        end_output = scripts + current_app.config['GLOBAL_JS'] + "\n" + indent_by("".join(interview_status.extra_scripts).strip(),
                                                             4).rstrip() + "\n  </div>\n  </body>\n</html>"
     key = 'da:html:uid:' + str(user_code) + ':i:' + str(yaml_filename) + ':userid:' + str(the_user_id)
     pipe = r.pipeline()
-    pipe.set(key, json.dumps(dict(body=output, extra_scripts=interview_status.extra_scripts, global_css=global_css,
+    pipe.set(key, json.dumps(dict(body=output, extra_scripts=interview_status.extra_scripts, global_css=current_app.config['GLOBAL_CSS'],
                                   extra_css=interview_status.extra_css, browser_title=interview_status.tabtitle,
                                   lang=interview_language, bodyclass=bodyclass, bootstrap_theme=bootstrap_theme)))
     pipe.expire(key, 60)

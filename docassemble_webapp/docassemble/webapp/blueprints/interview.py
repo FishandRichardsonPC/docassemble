@@ -483,7 +483,7 @@ def interview_list():
                 numinterviews=len([y for y in interviews if not y['metadata'].get('hidden', False)]),
                 interviews=sorted(interviews, key=valid_date_key), tag=tag, next_id=next_id, show_back=show_back,
                 form=form, page_js=Markup(
-            script))  # extra_css=Markup(global_css), extra_js=Markup(script), tab_title=interview_page_title, page_title=interview_page_title, title=title
+            script))
     if 'interview page template' in daconfig and daconfig['interview page template']:
         the_page = docassemble.base.functions.package_template_filename(daconfig['interview page template'])
         if the_page is None:

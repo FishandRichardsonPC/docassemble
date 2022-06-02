@@ -13,7 +13,6 @@ from docassemble.webapp.backend import fetch_user_dict, generate_csrf, get_sessi
     reset_user_dict, url_for
 from docassemble.webapp.config_server import DEBUG, START_TIME, WEBAPP_PATH, exit_page, final_default_yaml_filename, \
     kv_session
-from docassemble.webapp.global_values import global_css, global_js
 from docassemble.webapp.daredis import r
 from docassemble.webapp.page_values import additional_css, additional_scripts, standard_html_start, \
     standard_scripts
@@ -160,9 +159,9 @@ def test_embed():
     start_part = standard_html_start(interview_language=current_language, debug=False,
                                      bootstrap_theme=interview_status.question.interview.get_bootstrap_theme(),
                                      external=True, page_title=page_title, social=daconfig['social'],
-                                     yaml_filename=yaml_filename) + global_css + additional_css(interview_status)
+                                     yaml_filename=yaml_filename) + current_app.config['GLOBAL_CSS'] + additional_css(interview_status)
     scripts = standard_scripts(interview_language=current_language, external=True) + additional_scripts(
-        interview_status, yaml_filename) + global_js
+        interview_status, yaml_filename) + current_app.config['GLOBAL_JS']
     response = make_response(render_template('pages/test_embed.html', scripts=scripts, start_part=start_part,
                                              interview_url=url_for('index.index', i=yaml_filename, js_target='dablock',
                                                                    _external=True), page_title=page_title), 200)

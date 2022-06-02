@@ -26,11 +26,6 @@ from docassemble.webapp.daredis import r
 from flask_login import current_user
 import json
 
-global_css = ''
-
-global_js = ''
-
-
 class AdminInterview:
     def can_use(self):
         if self.require_login and current_user.is_anonymous:
@@ -241,8 +236,8 @@ def fix_api_keys():
 
 
 def initialize():
-    global global_css
-    global global_js
+    global_css = ''
+    global_js = ''
     with app.app_context():
         url_root = daconfig.get('url root', 'http://localhost') + daconfig.get('root', '/')
         url = url_root + 'interview'
