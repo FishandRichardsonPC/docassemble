@@ -1,32 +1,35 @@
 <div class="navbar{{ fixed_top }} navbar-expand-md {{ inverse }}" role="banner">
     <div class="container danavcontainer justify-content-start">
         {% if status.question.can_go_back and steps > 1 %}
-        {% if status.question.interview.navigation_back_button %}
-            <form style="display: inline-block" id="dabackbutton" method="POST" action="{{ index_url }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
-                <input type="hidden" name="_back_one" value="1"/>
-                <button
-                    class="navbar-brand navbar-nav dabackicon dabackbuttoncolor me-3"
-                    type="submit"
-                    title="{{ word("Go back to the previous question") }}"
-                >
-                    <span class="nav-link"><i class="fas fa-chevron-left"></i>
-                        <span class="daback">{{ corner_back }}</span>
-                    </span>
-                </button>
-            </form>
-        {% else %}
-            <form hidden style="display: inline-block" id="dabackbutton" method="POST" action="{{ index_url }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
-                <input type="hidden" name="_back_one" value="1"/>
-            </form>
+            {% if status.question.interview.navigation_back_button %}
+                <form style="display: inline-block" id="dabackbutton" method="POST" action="{{ index_url }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                    <input type="hidden" name="_back_one" value="1"/>
+                    <button
+                        class="navbar-brand navbar-nav dabackicon dabackbuttoncolor me-3"
+                        type="submit"
+                        title="{{ word("Go back to the previous question") }}"
+                    >
+                        <span class="nav-link"><i class="fas fa-chevron-left"></i>
+                            <span class="daback">{{ corner_back }}</span>
+                        </span>
+                    </button>
+                </form>
+            {% else %}
+                <form hidden style="display: inline-block" id="dabackbutton" method="POST" action="{{ index_url }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                    <input type="hidden" name="_back_one" value="1"/>
+                </form>
+            {% endif %}
         {% endif %}
-        {% if title_url %}<a
-            id="dapagetitle"
-            class="navbar-brand danavbar-title dapointer"
-            href="{{ title_url }}"
-            {% if title_url_opens_in_other_window %} target="_blank"{% endif %}
-        >{% endif %}
+        {% if title_url %}
+            <a
+                id="dapagetitle"
+                class="navbar-brand danavbar-title dapointer"
+                href="{{ title_url }}"
+                {% if title_url_opens_in_other_window %} target="_blank"{% endif %}
+            >
+        {% endif %}
         <span class="d-none d-md-block">{{ display_title }}</span>
         <span class="d-block d-md-none">{{ display_short_title }}</span>
         {% if title_url %}</a>{% endif %}
@@ -39,7 +42,8 @@
                     data-bs-toggle="collapse"
                     data-bs-target="#dasource"
                 ><i class="fas fa-code"></i></button>
-            </div>{% endif %}
+            </div>
+        {% endif %}
         <ul id="nav-bar-tab-list" class="nav navbar-nav damynavbar-right" role="tablist">
             <li class="nav-item visually-hidden-focusable">
                 <button
@@ -120,146 +124,204 @@
         <div class="collapse navbar-collapse" id="danavbar-collapse">
             <ul class="navbar-nav ms-auto">
                 {{ nav_item }}
-    {% if show_login %}
-        {% if current_user.is_anonymous %}
-            {% if custom_menu %}
-                <li class="nav-item dropdown">
-                    <a
-                        href="#"
-                        class="nav-link dropdown-toggle d-none d-md-block"
-                        data-bs-toggle="dropdown"
-                        role="button" id="damenuLabel" aria-haspopup="true" aria-expanded="false"
-                    >{{ word("Menu") }}</a><div class="dropdown-menu dropdown-menu-end" aria-labelledby="damenuLabel">{{ custom_menu }}<a class="dropdown-item" href="{{ login_url }}">{{ sign_in_text }}</a></div></li>
-            {% else %}
-                {% if login_style == 'button' %}
-                    {% if ALLOW_REGISTRATION %}
-                        <li class="nav-item">
-                            <a
-                                class="nav-link"
-                                href="{% if resume_after_login %}{{ url_for('user.register', next=url_for('index.index', **index_params)) }}{% else %}{{ url_for('user.register') }}{% endif %}"
-                            >{{ word('Sign up') }}</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link d-block d-md-none"
-                               href="{{ login_url }}"
-                            >{{ word('Sign in') }}</a>
-                        </li>
+                {% if show_login %}
+                    {% if current_user.is_anonymous %}
+                        {% if custom_menu %}
+                            <li class="nav-item dropdown">
+                                <a
+                                    href="#"
+                                    class="nav-link dropdown-toggle d-none d-md-block"
+                                    data-bs-toggle="dropdown"
+                                    role="button" id="damenuLabel" aria-haspopup="true" aria-expanded="false"
+                                >{{ word("Menu") }}</a>
+                                <div
+                                    class="dropdown-menu dropdown-menu-end"
+                                    aria-labelledby="damenuLabel"
+                                >{{ custom_menu }}<a class="dropdown-item" href="{{ login_url }}">{{ sign_in_text }}</a>
+                                </div>
+                            </li>
+                        {% else %}
+                            {% if login_style == 'button' %}
+                                {% if ALLOW_REGISTRATION %}
+                                    <li class="nav-item">
+                                        <a
+                                            class="nav-link"
+                                            href="
+                                                {% if resume_after_login %}{{ url_for('user.register', next=url_for('index.index', **index_params)) }}{% else %}{{ url_for('user.register') }}{% endif %}"
+                                        >{{ word('Sign up') }}</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a
+                                            class="nav-link d-block d-md-none"
+                                            href="{{ login_url }}"
+                                        >{{ word('Sign in') }}</a>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ login_url }}">{{ sign_in_text }}</a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
+                    {% else %}
+                        {% if (custom_menu is False or custom_menu == '') and hide_standard_menu %}
+                            <li class="nav-item">
+                                <a class="nav-link" tabindex="-1">
+                                    {{ user_link_text }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="nav-item dropdown">
+                                <a
+                                    class="nav-link dropdown-toggle d-none d-md-block"
+                                    href="#"
+                                    data-bs-toggle="dropdown"
+                                    role="button"
+                                    id="damenuLabel"
+                                    aria-haspopup="true"
+                                    aria-expanded="false"
+                                >
+                                    {{ user_link_text }}
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="damenuLabel">
+                                    {% if custom_menu %}{{ custom_menu }}{% endif %}
+                                    {% if not hide_standard_menu %}
+                                        {% if current_user.has_role('admin', 'developer') and debug_mode %}
+                                            <a
+                                                class="dropdown-item d-block d-md-none navbar"
+                                                title="{{ word("Information for the developer") }}"
+                                                href="#dasource"
+                                                data-bs-toggle="collapse"
+                                                aria-expanded="false"
+                                                aria-controls="source"
+                                            >{{ word('Source') }}</a>
+                                        {% endif %}
+                                        {% if current_user.has_role('admin', 'advocate') and ENABLE_MONITOR %}
+                                            <a
+                                                class="dropdown-item"
+                                                href="{{ url_for('monitor') }}"
+                                            >{{ word('Monitor') }}</a>
+                                        {% endif %}
+                                        {% if current_user.has_role('admin', 'developer', 'trainer') %}
+                                            <a
+                                                class="dropdown-item"
+                                                href="{{ url_for('train') }}"
+                                            >{{ word('Train') }}</a>
+                                        {% endif %}
+                                        {% if current_user.has_role('admin', 'developer') %}
+                                            {% if ALLOW_UPDATES %}
+                                                <a
+                                                    class="dropdown-item"
+                                                    href="{{ url_for('admin.update_package') }}"
+                                                >{{ word('Package Management') }}</a>
+                                            {% endif %}
+                                            <a
+                                                class="dropdown-item"
+                                                href="{{ url_for('admin.logs') }}"
+                                            >{{ word('Logs') }}</a>
+                                            {% if current_app.config['ENABLE_PLAYGROUND'] %}
+                                                <a
+                                                    class="dropdown-item"
+                                                    href="{{ url_for('playground.playground_page') }}"
+                                                >{{ word('Playground') }}</a>
+                                            {% endif %}
+                                            <a
+                                                class="dropdown-item"
+                                                href="{{ url_for('utilities') }}"
+                                            >{{ word('Utilities') }}</a>
+                                        {% endif %}
+                                        {% if current_user.has_role('admin', 'advocate') or current_user.can_do('access_user_info') %}
+                                            <a
+                                                class="dropdown-item"
+                                                href="{{ url_for('user_list') }}"
+                                            >{{ word('User List') }}</a>
+                                        {% endif %}
+                                        {% if current_user.has_role('admin') %}
+                                            <a
+                                                class="dropdown-item"
+                                                href="{{ url_for('config_page') }}"
+                                            >{{ word('Configuration') }}</a>
+                                        {% endif %}
+                                        {% if SHOW_DISPATCH %}
+                                            <a
+                                                class="dropdown-item"
+                                                href="{{ url_for('interview.interview_start') }}"
+                                            >{{ word('Available Interviews') }}</a>
+                                        {% endif %}
+                                        {% for item in ADMIN_INTERVIEWS %}
+                                            {% if item.can_use() and yaml_filename != item.interview %}
+                                                <a
+                                                    class="dropdown-item"
+                                                    href="{{ url_for('index.index', i=item.interview, new_session='1') }}"
+                                                >{{ item.get_title(language) }}</a>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if SHOW_MY_INTERVIEWS or current_user.has_role('admin') %}
+                                            <a
+                                                class="dropdown-item"
+                                                href="{{ url_for('interview.interview_list') }}"
+                                            >{{ word('My Interviews') }}</a>
+                                        {% endif %}
+                                        {% if current_user.has_role('admin', 'developer') %}
+                                            <a
+                                                class="dropdown-item"
+                                                href="{{ url_for('user_profile_page') }}"
+                                            >{{ word('Profile') }}</a>
+                                        {% else %}
+                                            {% if current_app.config['SHOW_PROFILE'] or current_user.has_role('admin') %}
+                                                <a
+                                                    class="dropdown-item"
+                                                    href="{{ url_for('user_profile_page') }}"
+                                                >{{ word('Profile') }}</a>
+                                            {% else %}
+                                                <a
+                                                    class="dropdown-item"
+                                                    href="{{ url_for('user.change_password') }}"
+                                                >{{ word('Change Password') }}</a>
+                                            {% endif %}
+                                        {% endif %}
+                                        <a
+                                            class="dropdown-item"
+                                            href="{{ url_for('user.logout') }}"
+                                        >{{ word('Sign Out') }}</a>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endif %}
                     {% endif %}
                 {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ login_url }}">{{ sign_in_text }}</a>
-                    </li>
-                {% endif %}
-            {% endif %}
-        {% else %}
-            {% if (custom_menu is False or custom_menu == '') and hide_standard_menu %}
-                <li class="nav-item">
-                    <a class="nav-link" tabindex="-1">
-                        {{ user_link_text }}
-                    </a>
-                </li>
-            {% else %}
-                <li class="nav-item dropdown">
-                    <a
-                        class="nav-link dropdown-toggle d-none d-md-block"
-                        href="#"
-                        data-bs-toggle="dropdown"
-                        role="button"
-                        id="damenuLabel"
-                        aria-haspopup="true"
-                        aria-expanded="false"
-                    >
-                        {{ user_link_text }}
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="damenuLabel">
-                    {% if custom_menu %}{{ custom_menu }}{% endif %}
-                {% if not hide_standard_menu %}
-                    {% if current_user.has_role('admin', 'developer') and debug_mode %}
-                        <a
-                            class="dropdown-item d-block d-md-none navbar"
-                            title="{{ word("Information for the developer") }}"
-                            href="#dasource"
-                            data-bs-toggle="collapse"
-                            aria-expanded="false"
-                            aria-controls="source"
-                        >{{ word('Source') }}</a>
-                    {% endif %}
-                    {% if current_user.has_role('admin', 'advocate') and ENABLE_MONITOR %}
-                        <a class="dropdown-item" href="{{ url_for('monitor') }}">{{ word('Monitor') }}</a>
-                    {% endif %}
-                    {% if current_user.has_role('admin', 'developer', 'trainer') %}
-                        <a class="dropdown-item" href="{{ url_for('train') }}">{{ word('Train') }}</a>
-                    {% endif %}
-                    {% if current_user.has_role('admin', 'developer') %}
-                        {% if ALLOW_UPDATES %}
-                            <a class="dropdown-item" href="{{ url_for('admin.update_package') }}">{{ word('Package Management') }}</a>
-                        {% endif %}
-                        <a class="dropdown-item" href="{{ url_for('admin.logs') }}">{{ word('Logs') }}</a>
-                        {% if current_app.config['ENABLE_PLAYGROUND'] %}
-                            <a class="dropdown-item" href="{{ url_for('playground.playground_page') }}">{{ word('Playground') }}</a>
-                        {% endif %}
-                        <a class="dropdown-item" href="{{ url_for('utilities') }}">{{ word('Utilities') }}</a>
-                    {% endif %}
-                    {% if current_user.has_role('admin', 'advocate') or current_user.can_do('access_user_info') %}
-                        <a
-                            class="dropdown-item"
-                            href="{{ url_for('user_list') }}"
-                        >{{ word('User List') }}</a>
-                    {% endif %}
-                    {% if current_user.has_role('admin') %}
-                        <a class="dropdown-item" href="{{ url_for('config_page') }}">{{ word('Configuration') }}</a>
-                    {% endif %}
-                    {% if SHOW_DISPATCH %}
-                        <a class="dropdown-item" href="{{ url_for('interview.interview_start') }}">{{ word('Available Interviews') }}</a>
-                    {% endif %}
-                    {% for item in ADMIN_INTERVIEWS %}
-                        {% if item.can_use() and yaml_filename != item.interview %}
-                            <a class="dropdown-item" href="{{ url_for('index.index', i=item.interview, new_session='1') }}">{{ item.get_title(language) }}</a>
-                        {% endif %}
-                    {% endfor %}
-                    {% if SHOW_MY_INTERVIEWS or current_user.has_role('admin') %}
-                        <a class="dropdown-item" href="{{ url_for('interview.interview_list') }}">{{ word('My Interviews') }}</a>
-                    {% endif %}
-                    {% if current_user.has_role('admin', 'developer') %}
-                        <a class="dropdown-item" href="{{ url_for('user_profile_page') }}">{{ word('Profile') }}</a>
+                    {% if custom_menu %}
+                        <li class="nav-item dropdown">
+                            <a
+                                class="nav-link dropdown-toggle"
+                                href="#"
+                                class="dropdown-toggle d-none d-md-block"
+                                data-bs-toggle="dropdown"
+                                role="button"
+                                aria-haspopup="true"
+                                aria-expanded="false"
+                            >{{ word("Menu") }}</a>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                {{ custom_menu }}
+                                {% if not hide_standard_menu %}
+                                    <a class="dropdown-item" href="{{ exit_href(status) }}">{{ status.exit_label }}</a>
+                                {% endif %}
+                            </div>
+                        </li>
                     {% else %}
-                        {% if current_app.config['SHOW_PROFILE'] or current_user.has_role('admin') %}
-                            <a class="dropdown-item" href="{{ url_for('user_profile_page') }}">{{ word('Profile') }}</a>
-                        {% else %}
-                            <a class="dropdown-item" href="{{ url_for('user.change_password') }}">{{ word('Change Password') }}</a>
-                        {% endif %}
+                        <li class="nav-item"><a
+                            class="nav-link"
+                            href="{{ exit_href(status) }}"
+                        >{{ status.exit_label }}</a></li>
                     {% endif %}
-                    <a class="dropdown-item" href="{{ url_for('user.logout') }}">{{ word('Sign Out') }}</a>
-                {%  endif %}
-                </div></li>
-            {%  endif %}
-        {%  endif %}
-    {% else %}
-        {% if custom_menu %}
-            <li class="nav-item dropdown">
+                {% endif %}
+            </ul>
+            {% if login_style == 'button' and show_login and current_user.is_anonymous and not custom_menu %}
                 <a
-                    class="nav-link dropdown-toggle"
-                    href="#"
-                    class="dropdown-toggle d-none d-md-block"
-                    data-bs-toggle="dropdown"
-                    role="button"
-                    aria-haspopup="true"
-                    aria-expanded="false"
-                >{{ word("Menu") }}</a>
-                <div class="dropdown-menu dropdown-menu-end">
-                {{ custom_menu }}
-            {% if not hide_standard_menu %}
-                <a class="dropdown-item" href="{{ exit_href(status) }}">{{ status.exit_label }}</a>
+                    class="btn btn-{{ BUTTON_COLOR_NAV_LOGIN }} btn-sm mb-0 ms-3 d-none d-md-block"
+                    href="{{ login_url }}"
+                >{{ word('Sign in') }}</a>
             {% endif %}
-            </div></li>
-        {% else %}
-            <li class="nav-item"><a class="nav-link" href="{{ exit_href(status) }}">{{ status.exit_label }}</a></li>
-        {% endif %}
-    {% endif %}
-    </ul>
-    {% if login_style == 'button' and show_login and current_user.is_anonymous and not custom_menu %}
-        <a class="btn btn-{{ BUTTON_COLOR_NAV_LOGIN }} btn-sm mb-0 ms-3 d-none d-md-block" href="{{ login_url }}">{{ word('Sign in') }}</a>
-    {% endif %}
         </div>
-      </div>
     </div>
+</div>
