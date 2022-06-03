@@ -2836,8 +2836,8 @@ def index(action_argument=None, refer=None):
     </footer>
 """
     if not is_ajax:
-        end_output = scripts + current_app.config['GLOBAL_JS'] + "\n" + indent_by("".join(interview_status.extra_scripts).strip(),
-                                                            4).rstrip() + "\n  </div>\n  </body>\n</html>"
+        current_app.logger.warn(current_app.config['GLOBAL_JS'])
+        end_output = scripts + current_app.config['GLOBAL_JS'] + "\n" + indent_by("".join(interview_status.extra_scripts).strip(), 4).rstrip() + "\n  </div>\n  </body>\n</html>"
     key = 'da:html:uid:' + str(user_code) + ':i:' + str(yaml_filename) + ':userid:' + str(the_user_id)
     pipe = r.pipeline()
     pipe.set(key, json.dumps(dict(body=output, extra_scripts=interview_status.extra_scripts, global_css=current_app.config['GLOBAL_CSS'],
