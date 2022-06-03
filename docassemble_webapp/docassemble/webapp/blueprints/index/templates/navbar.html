@@ -1,7 +1,7 @@
 <div class="navbar{{ fixed_top }} navbar-expand-md {{ inverse }}" role="banner">
     <div class="container danavcontainer justify-content-start">
-        {% if status.question.can_go_back and steps > 1 %}
-            {% if status.question.interview.navigation_back_button %}
+        {% if can_go_back and steps > 1 %}
+            {% if navigation_back_button %}
                 <form style="display: inline-block" id="dabackbutton" method="POST" action="{{ index_url }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
                     <input type="hidden" name="_back_one" value="1"/>
@@ -53,7 +53,7 @@
                     data-bs-target="#daquestion"
                 >{{ word('Question') }}</button>
             </li>
-            {% if len(interview_help_text) > 0 or (len(help_text) > 0 and not question_help_button) %}
+            {% if interview_help_text|length > 0 or (help_text|length > 0 and not question_help_button) %}
                 {% if question_help_text is None or question_help_button %}
                     <li class="nav-item" role="presentation">
                         <button
@@ -304,15 +304,15 @@
                             <div class="dropdown-menu dropdown-menu-end">
                                 {{ custom_menu }}
                                 {% if not hide_standard_menu %}
-                                    <a class="dropdown-item" href="{{ exit_href(status) }}">{{ status.exit_label }}</a>
+                                    <a class="dropdown-item" href="{{ exit_href }}">{{ exit_label }}</a>
                                 {% endif %}
                             </div>
                         </li>
                     {% else %}
                         <li class="nav-item"><a
                             class="nav-link"
-                            href="{{ exit_href(status) }}"
-                        >{{ status.exit_label }}</a></li>
+                            href="{{ exit_href }}"
+                        >{{ exit_label }}</a></li>
                     {% endif %}
                 {% endif %}
             </ul>

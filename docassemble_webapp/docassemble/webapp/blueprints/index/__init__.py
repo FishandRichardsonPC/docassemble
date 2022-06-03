@@ -74,6 +74,8 @@ from sqlalchemy import select
 
 indexBp = Blueprint('index', __name__, template_folder='templates')
 
+def _call_or_get(function_or_property):
+    return function_or_property() if callable(function_or_property) else function_or_property
 
 def populate_social(social, metadata):
     for key in ('image', 'description'):
@@ -201,6 +203,8 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
         "navbar.html",
         fixed_top=fixed_top,
         inverse=inverse,
+        navigation_back_button=status.question.interview.navigation_back_button,
+        exit_label=status.exit_label,
         can_go_back=status.question.can_go_back,
         steps=steps,
         index_url=url_for('index.index', **index_params),
@@ -226,7 +230,7 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
         login_style=daconfig.get('login link style', 'normal'),
         ALLOW_REGISTRATION=ALLOW_REGISTRATION,
         hide_standard_menu=status.question.interview.options.get('hide standard menu', False),
-        user_link_text=(current_user.email if current_user.email else re.sub(r'.*\$', '', current_user.social_id)),
+        user_link_text=(current_user.email if current_user.email else re.sub(r'.*\$', '', current_user.social_id)) if _call_or_get(current_user.is_authenticated) else "",
         ENABLE_MONITOR=current_app.config['ENABLE_MONITOR'],
         ALLOW_UPDATES=current_app.config['ALLOW_UPDATES'],
         SHOW_DISPATCH=current_app.config['SHOW_DISPATCH'],
@@ -234,8 +238,8 @@ def make_navbar(status, steps, show_login, chat_info, debug_mode, index_params, 
         yaml_filename=docassemble.base.functions.this_thread.current_info.get('yaml_filename', ''),
         language=docassemble.base.functions.get_language(),
         SHOW_MY_INTERVIEWS=current_app.config['SHOW_MY_INTERVIEWS'],
-        exit_href=exit_href,
-        BUTTON_COLOR_NAV_LOGIN=BUTTON_COLOR_NAV_LOGIN
+        BUTTON_COLOR_NAV_LOGIN=BUTTON_COLOR_NAV_LOGIN,
+        exit_href=exit_href(status)
     )
 
 
@@ -2836,7 +2840,6 @@ def index(action_argument=None, refer=None):
     </footer>
 """
     if not is_ajax:
-        current_app.logger.warn(current_app.config['GLOBAL_JS'])
         end_output = scripts + current_app.config['GLOBAL_JS'] + "\n" + indent_by("".join(interview_status.extra_scripts).strip(), 4).rstrip() + "\n  </div>\n  </body>\n</html>"
     key = 'da:html:uid:' + str(user_code) + ':i:' + str(yaml_filename) + ':userid:' + str(the_user_id)
     pipe = r.pipeline()
