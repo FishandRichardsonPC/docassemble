@@ -19,11 +19,11 @@ function onSignIn(googleUser) {
   if (profile.getId()){
     $.ajax({
       type: 'POST',
-      url: '{{ url_for('oauth_authorize', provider='google', next=request.args.get('next', '')) }}',
+      url: '{{ url_for('auth.oauth_authorize', provider='google', next=request.args.get('next', '')) }}',
       contentType: 'application/octet-stream; charset=utf-8',
       success: function(result) {
         //console.log(result);
-        window.location = '{{ url_for('oauth_callback', provider='google', _external=True) }}';
+        window.location = '{{ url_for('auth.oauth_callback', provider='google', _external=True) }}';
       },
       dataType: "json",
       data: {
