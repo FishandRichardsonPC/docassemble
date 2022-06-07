@@ -52,6 +52,7 @@ def oauth_callback(provider):
     oauth = OAuthSignIn.get_provider(provider)
     social_id, username, email, name_data = oauth.callback()
     if social_id is None:
+        current_app.logger.warn('Authentication failed.', extra={social_id, username, email, name_data})
         flash(word('Authentication failed.'), 'error')
         return redirect(url_for('interview.interview_list', from_login='1'))
     user = db.session.execute(
@@ -60,6 +61,7 @@ def oauth_callback(provider):
         user = db.session.execute(
             select(UserModel).options(db.joinedload(UserModel.roles)).filter_by(email=email)).scalar()
     if user and user.social_id is not None and user.social_id.startswith('local'):
+        current_app.logger.warn('Duplicate User.', extra={social_id, username, email, name_data})
         flash(word('There is already a username and password on this system with the e-mail address') + " " + str(
             email) + ".  " + word("Please log in."), 'error')
         return redirect(url_for('user.login'))
@@ -76,6 +78,8 @@ def oauth_callback(provider):
         db.session.commit()
     login_user(user, remember=False)
     update_last_login(user)
+
+    current_app.logger.info('Login Successful.', extra={social_id, username, email, name_data})
     if 'i' in session:  # TEMPORARY
         get_session(session['i'])
     to_convert = []
@@ -87,7 +91,6 @@ def oauth_callback(provider):
                 to_convert.append((filename, info['uid']))
                 save_user_dict_key(info['uid'], filename, priors=True, user=user)
                 update_session(filename, key_logged=True)
-    # logmessage("oauth_callback: calling substitute_secret")
     secret = substitute_secret(str(request.cookies.get('secret', None)), pad_to_16(MD5Hash(data=social_id).hexdigest()),
                                to_convert=to_convert)
     sub_temp_other(user)
