@@ -2098,6 +2098,7 @@ def index(action_argument=None, refer=None):
         steps = 1
         changed = False
         interview.assemble(user_dict, interview_status)
+        interview.assemble(user_dict, interview_status)
     elif interview_status.question.question_type == "new_session":
         manual_checkout(manual_filename=yaml_filename)
         url_args = user_dict['url_args']

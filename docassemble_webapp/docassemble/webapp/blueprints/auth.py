@@ -51,8 +51,13 @@ def oauth_callback(provider):
         return redirect(url_for('interview.interview_list', from_login='1'))
     oauth = OAuthSignIn.get_provider(provider)
     social_id, username, email, name_data = oauth.callback()
+    extra = {}
+    extra['social_id'] = json.dumps(social_id)
+    extra['username'] = json.dumps(username),
+    extra['email'] = json.dumps(email),
+    extra['name_data'] = json.dumps(name_data)
     if social_id is None:
-        current_app.logger.warn('Authentication failed.', extra={social_id, username, email, name_data})
+        current_app.logger.warn('Authentication failed.', extra=extra)
         flash(word('Authentication failed.'), 'error')
         return redirect(url_for('interview.interview_list', from_login='1'))
     user = db.session.execute(
@@ -61,7 +66,7 @@ def oauth_callback(provider):
         user = db.session.execute(
             select(UserModel).options(db.joinedload(UserModel.roles)).filter_by(email=email)).scalar()
     if user and user.social_id is not None and user.social_id.startswith('local'):
-        current_app.logger.warn('Duplicate User.', extra={social_id, username, email, name_data})
+        current_app.logger.warn('Duplicate User.', extra=extra)
         flash(word('There is already a username and password on this system with the e-mail address') + " " + str(
             email) + ".  " + word("Please log in."), 'error')
         return redirect(url_for('user.login'))
@@ -79,7 +84,7 @@ def oauth_callback(provider):
     login_user(user, remember=False)
     update_last_login(user)
 
-    current_app.logger.info('Login Successful.', extra={social_id, username, email, name_data})
+    current_app.logger.info('Login Successful.', extra=extra)
     if 'i' in session:  # TEMPORARY
         get_session(session['i'])
     to_convert = []

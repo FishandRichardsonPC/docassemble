@@ -2132,42 +2132,42 @@ def server_error(the_error):
     else:
         the_history = None
     the_vars = None
-    if the_logger is not None:
-        the_logger.error("Page failed to load", exc_info=the_error)
-    else:
-        if isinstance(the_error, DAError):
-            errmess = str(the_error)
-            the_trace = None
+    # if the_logger is not None:
+    #     the_logger.error("Page failed to load", exc_info=the_error)
+    # else:
+    if isinstance(the_error, DAError):
+        errmess = str(the_error)
+        the_trace = None
+        logmessage(errmess)
+    elif isinstance(the_error, TemplateError):
+        errmess = str(the_error)
+        if hasattr(the_error, 'name') and the_error.name is not None:
+            errmess += "\nName: " + str(the_error.name)
+        if hasattr(the_error, 'filename') and the_error.filename is not None:
+            errmess += "\nFilename: " + str(the_error.filename)
+        if hasattr(the_error, 'docx_context'):
+            errmess += "\n\nContext:\n" + "\n".join(map(lambda x: "  " + x, the_error.docx_context))
+        the_trace = traceback.format_exc()
+        try:
             logmessage(errmess)
-        elif isinstance(the_error, TemplateError):
-            errmess = str(the_error)
-            if hasattr(the_error, 'name') and the_error.name is not None:
-                errmess += "\nName: " + str(the_error.name)
-            if hasattr(the_error, 'filename') and the_error.filename is not None:
-                errmess += "\nFilename: " + str(the_error.filename)
-            if hasattr(the_error, 'docx_context'):
-                errmess += "\n\nContext:\n" + "\n".join(map(lambda x: "  " + x, the_error.docx_context))
-            the_trace = traceback.format_exc()
-            try:
-                logmessage(errmess)
-            except:
-                logmessage("Could not log the error message")
+        except:
+            logmessage("Could not log the error message")
+    else:
+        try:
+            errmess = str(type(the_error).__name__) + ": " + str(the_error)
+        except:
+            errmess = str(type(the_error).__name__)
+        if hasattr(the_error, 'traceback'):
+            the_trace = the_error.traceback
         else:
-            try:
-                errmess = str(type(the_error).__name__) + ": " + str(the_error)
-            except:
-                errmess = str(type(the_error).__name__)
-            if hasattr(the_error, 'traceback'):
-                the_trace = the_error.traceback
-            else:
-                the_trace = traceback.format_exc()
-            if hasattr(docassemble.base.functions.this_thread,
-                       'misc') and 'current_field' in docassemble.base.functions.this_thread.misc:
-                errmess += "\nIn field index number " + str(docassemble.base.functions.this_thread.misc['current_field'])
-            if hasattr(the_error, 'da_line_with_error'):
-                errmess += "\nIn line: " + str(the_error.da_line_with_error)
+            the_trace = traceback.format_exc()
+        if hasattr(docassemble.base.functions.this_thread,
+                   'misc') and 'current_field' in docassemble.base.functions.this_thread.misc:
+            errmess += "\nIn field index number " + str(docassemble.base.functions.this_thread.misc['current_field'])
+        if hasattr(the_error, 'da_line_with_error'):
+            errmess += "\nIn line: " + str(the_error.da_line_with_error)
 
-            logmessage(the_trace)
+        logmessage(the_trace)
     if isinstance(the_error, DAError):
         error_code = the_error.error_code
     elif isinstance(the_error, werkzeug.exceptions.HTTPException):

@@ -561,14 +561,13 @@ function daInformAbout(subject, chatMessage) {
     let waitPeriod = 3000;
     if (subject === 'chat') {
         target = "#daChatAvailable a";
-        message = {{ word("Get help through live chat by clicking here.") | tojson }};
+        message = "{{ word("Get help through live chat by clicking here.") }}";
     } else if (subject === 'chatmessage') {
         target = "#daChatAvailable a";
-        //message = {{ word("A chat message has arrived.") | tojson }};
         message = chatMessage;
     } else if (subject === 'phone') {
         target = "#daPhoneAvailable a";
-        message = {{ word("Click here to get help over the phone.") | tojson }};
+        message = "{{ word("Click here to get help over the phone.") }}";
     } else {
         return;
     }
@@ -582,7 +581,7 @@ function daInformAbout(subject, chatMessage) {
             "placement": "bottom",
             "trigger": "manual",
             "container": "body",
-            "title": {{ word("New chat message") | tojson }}
+            "title": "{{ word("New chat message") }}"
         });
     } else {
         $(target).popover({
@@ -590,7 +589,7 @@ function daInformAbout(subject, chatMessage) {
             "placement": "bottom",
             "trigger": "manual",
             "container": "body",
-            "title": {{ word("Live chat is available") | tojson }}
+            "title": "{{ word("Live chat is available") }}"
         });
     }
     $(target).popover('show');
@@ -599,12 +598,6 @@ function daInformAbout(subject, chatMessage) {
         $(target).removeAttr('title');
     }, waitPeriod);
 }
-// function daCloseSocket(){
-//   if (typeof daSocket !== 'undefined' && daSocket.connected){
-//     //daSocket.emit('terminate');
-//     //io.unwatch();
-//   }
-// }
 function daPublishMessage(data) {
     let newDiv = document.createElement('li');
     $(newDiv).addClass("list-group-item");
@@ -722,8 +715,6 @@ function daInitializeSocket() {
                 daChatStatus = 'on';
                 daDisplayChat();
                 daPushChanges();
-                //daTurnOnChat();
-                //console.log("Emitting chat_log from on connect");
                 daSocket.emit('chat_log', {i: daYamlFilename});
             }
             if (daBeingControlled) {
@@ -732,7 +723,6 @@ function daInitializeSocket() {
             }
         });
         daSocket.on('chat_log', function (arg) {
-            //console.log("Got chat_log");
             $("#daCorrespondence").html('');
             daChatHistory = [];
             let messages = arg.data;
@@ -751,11 +741,9 @@ function daInitializeSocket() {
         });
         daSocket.on('controllerexit', function () {
             daBeingControlled = false;
-            //console.log("Hiding control 2");
             daHideControl();
             if (daChatStatus !== 'on') {
                 if (daSocket !== null && daSocket.connected) {
-                    //console.log('Terminating interview socket because control over');
                     daSocket.emit('terminate');
                 }
             }
@@ -1534,14 +1522,6 @@ function daCloseChat() {
         daSocket.disconnect();
     }
 }
-// function daTurnOffChat(){
-//   $("#daChatOnButton").removeClass("dainvisible");
-//   $("#daChatBox").addClass("dainvisible");
-//   //daCloseSocket();
-//   $("#daMessage").prop('disabled', true);
-//   $("#daSend").unbind();
-//   //daStartCheckingIn();
-// }
 function daDisplayChat() {
     if (daChatStatus === 'off' || daChatStatus === 'observeonly') {
         $("#daChatBox").addClass("dainvisible");
